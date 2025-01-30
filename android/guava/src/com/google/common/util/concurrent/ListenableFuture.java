@@ -18,6 +18,8 @@ import com.google.errorprone.annotations.DoNotMock;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A {@link Future} that accepts completion listeners. Each listener has an associated executor, and
@@ -35,10 +37,11 @@ import java.util.concurrent.RejectedExecutionException;
  *
  * <p>The main purpose of {@code ListenableFuture} is to help you chain together a graph of
  * asynchronous operations. You can chain them together manually with calls to methods like {@link
- * Futures#transform(ListenableFuture, com.google.common.base.Function, Executor)
- * Futures.transform}, but you will often find it easier to use a framework. Frameworks automate the
- * process, often adding features like monitoring, debugging, and cancellation. Examples of
- * frameworks include:
+ * Futures#transform(ListenableFuture, com.google.common.base.Function, Executor) Futures.transform}
+ * (or {@link FluentFuture#transform(com.google.common.base.Function, Executor)
+ * FluentFuture.transform}), but you will often find it easier to use a framework. Frameworks
+ * automate the process, often adding features like monitoring, debugging, and cancellation.
+ * Examples of frameworks include:
  *
  * <ul>
  *   <li><a href="https://dagger.dev/producers.html">Dagger Producers</a>
@@ -99,9 +102,24 @@ import java.util.concurrent.RejectedExecutionException;
  * @author Nishant Thakkar
  * @since 1.0
  */
-@SuppressWarnings("ShouldNotSubclass")
+/*
+ * Some of the annotations below were added after we released our separate
+ * com.google.guava:listenablefuture:1.0 artifact. (For more on that artifact, see
+ * https://github.com/google/guava/releases/tag/v27.0) This means that the copy of ListenableFuture
+ * in com.google.guava:guava differs from the "frozen" copy in the listenablefuture artifact. This
+ * could in principle cause problems for some users. Still, we expect that the benefits of the
+ * nullness annotations in particular will outweigh the costs. (And it's worth noting that we have
+ * released multiple ListenableFuture.class files that are not byte-for-byte compatible even from
+ * the beginning, thanks to using different `-source -target` values for compiling our `-jre` and
+ * `-android` "flavors.")
+ *
+ * (We could consider releasing a listenablefuture:1.0.1 someday. But we would want to look into how
+ * that affects users, especially users of the Android Gradle Plugin, since the plugin developers
+ * put in a special hack for us: https://issuetracker.google.com/issues/131431257)
+ */
 @DoNotMock("Use the methods in Futures (like immediateFuture) or SettableFuture")
-public interface ListenableFuture<V> extends Future<V> {
+@NullMarked
+public interface ListenableFuture<V extends @Nullable Object> extends Future<V> {
   /**
    * Registers a listener to be {@linkplain Executor#execute(Runnable) run} on the given executor.
    * The listener will run when the {@code Future}'s computation is {@linkplain Future#isDone()

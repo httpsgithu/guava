@@ -16,26 +16,28 @@
 package com.google.common.util.concurrent;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertThrows;
 
-import java.lang.reflect.Method;
+import com.google.common.util.concurrent.InterruptibleTask.Blocker;
 import java.nio.channels.spi.AbstractInterruptibleChannel;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.AbstractOwnableSynchronizer;
 import java.util.concurrent.locks.LockSupport;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
-
+@NullUnmarked
 public final class InterruptibleTaskTest extends TestCase {
 
   // Regression test for a deadlock where a task could be stuck busy waiting for the task to
   // transition to DONE
   public void testInterruptThrows() throws Exception {
     final CountDownLatch isInterruptibleRegistered = new CountDownLatch(1);
-    InterruptibleTask<Void> task =
-        new InterruptibleTask<Void>() {
+    InterruptibleTask<@Nullable Void> task =
+        new InterruptibleTask<@Nullable Void>() {
           @Override
-          Void runInterruptibly() throws Exception {
+          @Nullable Void runInterruptibly() throws Exception {
             BrokenChannel bc = new BrokenChannel();
             bc.doBegin();
             isInterruptibleRegistered.countDown();
@@ -54,22 +56,21 @@ public final class InterruptibleTaskTest extends TestCase {
           }
 
           @Override
-          void afterRanInterruptibly(Void result, Throwable error) {}
+          void afterRanInterruptiblySuccess(@Nullable Void result) {}
+
+          @Override
+          void afterRanInterruptiblyFailure(Throwable error) {}
         };
     Thread runner = new Thread(task);
     runner.start();
     isInterruptibleRegistered.await();
-    try {
-      task.interruptTask();
-      fail();
-    } catch (RuntimeException expected) {
-      assertThat(expected)
-          .hasMessageThat()
-          .isEqualTo("I bet you didn't think Thread.interrupt could throw");
-    }
+    RuntimeException expected = assertThrows(RuntimeException.class, () -> task.interruptTask());
+    assertThat(expected)
+        .hasMessageThat()
+        .isEqualTo("I bet you didn't think Thread.interrupt could throw");
     // We need to wait for the runner to exit.  It used to be that the runner would get stuck in the
     // busy loop when interrupt threw.
-    runner.join(TimeUnit.SECONDS.toMillis(10));
+    runner.join(SECONDS.toMillis(10));
   }
 
   static final class BrokenChannel extends AbstractInterruptibleChannel {
@@ -88,13 +89,21 @@ public final class InterruptibleTaskTest extends TestCase {
    * protect ourselves from that we want to make sure that tasks don't spin too much waiting for the
    * interrupting thread to complete the protocol.
    */
+  /*
+   * This test hangs (or maybe is just *very* slow) under Android.
+   *
+   * TODO(b/218700094): Ideally, get this to pass under Android. Failing that, convince ourselves
+   * that the test isn't exposing a real problem with InterruptibleTask, one that could matter in
+   * prod.
+   */
+  @AndroidIncompatible
   public void testInterruptIsSlow() throws Exception {
     final CountDownLatch isInterruptibleRegistered = new CountDownLatch(1);
     final SlowChannel slowChannel = new SlowChannel();
-    final InterruptibleTask<Void> task =
-        new InterruptibleTask<Void>() {
+    final InterruptibleTask<@Nullable Void> task =
+        new InterruptibleTask<@Nullable Void>() {
           @Override
-          Void runInterruptibly() throws Exception {
+          @Nullable Void runInterruptibly() throws Exception {
             slowChannel.doBegin();
             isInterruptibleRegistered.countDown();
             try {
@@ -117,7 +126,10 @@ public final class InterruptibleTaskTest extends TestCase {
           }
 
           @Override
-          void afterRanInterruptibly(Void result, Throwable error) {}
+          void afterRanInterruptiblySuccess(@Nullable Void result) {}
+
+          @Override
+          void afterRanInterruptiblyFailure(Throwable error) {}
         };
     Thread runner = new Thread(task, "runner");
     runner.start();
@@ -139,19 +151,15 @@ public final class InterruptibleTaskTest extends TestCase {
     // waiting for the slow interrupting thread to complete Thread.interrupt
     awaitBlockedOnInstanceOf(runner, InterruptibleTask.Blocker.class);
 
-    Object blocker = LockSupport.getBlocker(runner);
-    assertThat(blocker).isInstanceOf(AbstractOwnableSynchronizer.class);
-    Method getExclusiveOwnerThread =
-        AbstractOwnableSynchronizer.class.getDeclaredMethod("getExclusiveOwnerThread");
-    getExclusiveOwnerThread.setAccessible(true);
-    Thread owner = (Thread) getExclusiveOwnerThread.invoke(blocker);
+    Blocker blocker = (Blocker) LockSupport.getBlocker(runner);
+    Thread owner = blocker.getOwner();
     assertThat(owner).isSameInstanceAs(interrupter);
 
     slowChannel.exitClose.countDown(); // release the interrupter
 
     // We need to wait for the runner to exit.  To make sure that the interrupting thread wakes it
     // back up.
-    runner.join(TimeUnit.SECONDS.toMillis(10));
+    runner.join(SECONDS.toMillis(10));
   }
 
   // waits for the given thread to be blocked on the given object

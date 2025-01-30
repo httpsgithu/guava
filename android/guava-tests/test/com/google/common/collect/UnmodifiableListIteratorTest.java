@@ -16,11 +16,14 @@
 
 package com.google.common.collect;
 
+import static com.google.common.collect.ReflectionFreeAssertThrows.assertThrows;
+
 import com.google.common.annotations.GwtCompatible;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Tests for UnmodifiableListIterator.
@@ -28,19 +31,18 @@ import junit.framework.TestCase;
  * @author Louis Wasserman
  */
 @GwtCompatible
+@NullMarked
 public class UnmodifiableListIteratorTest extends TestCase {
+  @SuppressWarnings("DoNotCall")
   public void testRemove() {
     Iterator<String> iterator = create();
 
     assertTrue(iterator.hasNext());
     assertEquals("a", iterator.next());
-    try {
-      iterator.remove();
-      fail();
-    } catch (UnsupportedOperationException expected) {
-    }
+    assertThrows(UnsupportedOperationException.class, () -> iterator.remove());
   }
 
+  @SuppressWarnings("DoNotCall")
   public void testAdd() {
     ListIterator<String> iterator = create();
 
@@ -48,13 +50,10 @@ public class UnmodifiableListIteratorTest extends TestCase {
     assertEquals("a", iterator.next());
     assertEquals("b", iterator.next());
     assertEquals("b", iterator.previous());
-    try {
-      iterator.add("c");
-      fail();
-    } catch (UnsupportedOperationException expected) {
-    }
+    assertThrows(UnsupportedOperationException.class, () -> iterator.add("c"));
   }
 
+  @SuppressWarnings("DoNotCall")
   public void testSet() {
     ListIterator<String> iterator = create();
 
@@ -62,11 +61,7 @@ public class UnmodifiableListIteratorTest extends TestCase {
     assertEquals("a", iterator.next());
     assertEquals("b", iterator.next());
     assertEquals("b", iterator.previous());
-    try {
-      iterator.set("c");
-      fail();
-    } catch (UnsupportedOperationException expected) {
-    }
+    assertThrows(UnsupportedOperationException.class, () -> iterator.set("c"));
   }
 
   UnmodifiableListIterator<String> create() {

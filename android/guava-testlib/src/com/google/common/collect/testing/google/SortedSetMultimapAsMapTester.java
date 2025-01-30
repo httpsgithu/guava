@@ -33,7 +33,9 @@ import org.junit.Ignore;
  * @param <V> The value type of the tested multimap.
  */
 @GwtCompatible
-@Ignore // Affects only Android test runner, which respects JUnit 4 annotations on JUnit 3 tests.
+@Ignore("test runners must not instantiate and run this directly, only via suites we build")
+// @Ignore affects the Android test runner, which respects JUnit 4 annotations on JUnit 3 tests.
+@SuppressWarnings("JUnit4ClassUsedInJUnit3")
 public class SortedSetMultimapAsMapTester<K, V>
     extends AbstractMultimapTester<K, V, SortedSetMultimap<K, V>> {
   public void testAsMapValuesImplementSortedSet() {
@@ -52,7 +54,7 @@ public class SortedSetMultimapAsMapTester<K, V>
 
   @MapFeature.Require(SUPPORTS_REMOVE)
   public void testAsMapRemoveImplementsSortedSet() {
-    List<K> keys = new ArrayList<K>(multimap().keySet());
+    List<K> keys = new ArrayList<>(multimap().keySet());
     for (K key : keys) {
       resetCollection();
       SortedSet<V> valueSet = (SortedSet<V>) multimap().asMap().remove(key);

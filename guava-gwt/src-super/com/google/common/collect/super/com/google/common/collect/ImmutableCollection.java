@@ -18,13 +18,14 @@ package com.google.common.collect;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Spliterator;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.function.Predicate;
+import org.jspecify.annotations.Nullable;
 
 /**
  * GWT emulated version of {@link ImmutableCollection}.
@@ -35,9 +36,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class ImmutableCollection<E> extends AbstractCollection<E> implements Serializable {
   static final int SPLITERATOR_CHARACTERISTICS =
       Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.ORDERED;
-
-  static final ImmutableCollection<Object> EMPTY_IMMUTABLE_COLLECTION =
-      new ForwardingImmutableCollection<Object>(Collections.emptyList());
 
   ImmutableCollection() {}
 
@@ -51,7 +49,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
     throw new UnsupportedOperationException();
   }
 
-  public final boolean remove(Object object) {
+  public final boolean remove(@Nullable Object object) {
     throw new UnsupportedOperationException();
   }
 
@@ -63,6 +61,10 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
     throw new UnsupportedOperationException();
   }
 
+  public final boolean removeIf(Predicate<? super E> predicate) {
+    throw new UnsupportedOperationException();
+  }
+
   public final boolean retainAll(Collection<?> elementsToKeep) {
     throw new UnsupportedOperationException();
   }
@@ -71,7 +73,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
     throw new UnsupportedOperationException();
   }
 
-  private transient ImmutableList<E> asList;
+  private transient @Nullable ImmutableList<E> asList;
 
   public ImmutableList<E> asList() {
     ImmutableList<E> list = asList;
@@ -120,6 +122,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
 
   /** GWT emulated version of {@link ImmutableCollection.Builder}. */
   public abstract static class Builder<E> {
+    static final int DEFAULT_INITIAL_CAPACITY = 4;
 
     Builder() {}
 
@@ -139,8 +142,10 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
       return newCapacity;
     }
 
+    @CanIgnoreReturnValue
     public abstract Builder<E> add(E element);
 
+    @CanIgnoreReturnValue
     public Builder<E> add(E... elements) {
       checkNotNull(elements); // for GWT
       for (E element : elements) {
@@ -149,6 +154,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
       return this;
     }
 
+    @CanIgnoreReturnValue
     public Builder<E> addAll(Iterable<? extends E> elements) {
       checkNotNull(elements); // for GWT
       for (E element : elements) {
@@ -157,6 +163,7 @@ public abstract class ImmutableCollection<E> extends AbstractCollection<E> imple
       return this;
     }
 
+    @CanIgnoreReturnValue
     public Builder<E> addAll(Iterator<? extends E> elements) {
       checkNotNull(elements); // for GWT
       while (elements.hasNext()) {

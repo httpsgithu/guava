@@ -21,6 +21,7 @@ import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Enumerates several algorithms providing equivalent functionality to {@link Quantiles}, for use in
@@ -31,6 +32,7 @@ import java.util.Map;
  * @author Pete Gillin
  * @since 20.0
  */
+@NullUnmarked
 enum QuantilesAlgorithm {
 
   /**
@@ -53,7 +55,7 @@ enum QuantilesAlgorithm {
       for (int index : indexes) {
         builder.put(index, singleQuantileFromSorted(index, scale, dataset));
       }
-      return builder.build();
+      return builder.buildOrThrow();
     }
 
     private double singleQuantileFromSorted(int index, int scale, double[] dataset) {
@@ -97,7 +99,7 @@ enum QuantilesAlgorithm {
       for (int index : indexes) {
         builder.put(index, singleQuantile(index, scale, dataset));
       }
-      return builder.build();
+      return builder.buildOrThrow();
     }
   },
 

@@ -18,9 +18,10 @@ package com.google.common.collect;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import java.io.Serializable;
 import java.util.Map.Entry;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * {@code values()} implementation for {@link ImmutableMap}.
@@ -59,7 +60,7 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
   }
 
   @Override
-  public boolean contains(@NullableDecl Object object) {
+  public boolean contains(@Nullable Object object) {
     return object != null && Iterators.contains(iterator(), object);
   }
 
@@ -86,6 +87,15 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
       public int size() {
         return entryList.size();
       }
+
+      // redeclare to help optimizers with b/310253115
+      @SuppressWarnings("RedundantOverride")
+      @Override
+      @J2ktIncompatible // serialization
+      @GwtIncompatible // serialization
+      Object writeReplace() {
+        return super.writeReplace();
+      }
     };
   }
 
@@ -96,6 +106,7 @@ final class ImmutableMapValues<K, V> extends ImmutableCollection<V> {
   }
 
   @GwtIncompatible // serialization
+  @J2ktIncompatible
   private static class SerializedForm<V> implements Serializable {
     final ImmutableMap<?, V> map;
 

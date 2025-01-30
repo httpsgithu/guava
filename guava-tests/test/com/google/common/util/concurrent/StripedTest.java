@@ -37,12 +37,14 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Tests for Striped.
  *
  * @author Dimitris Andreou
  */
+@NullUnmarked
 public class StripedTest extends TestCase {
   private static List<Striped<?>> strongImplementations() {
     return ImmutableList.of(
@@ -50,22 +52,8 @@ public class StripedTest extends TestCase {
         Striped.readWriteLock(256),
         Striped.lock(100),
         Striped.lock(256),
-        Striped.custom(
-            100,
-            new Supplier<Lock>() {
-              @Override
-              public Lock get() {
-                return new ReentrantLock(true);
-              }
-            }),
-        Striped.custom(
-            256,
-            new Supplier<Lock>() {
-              @Override
-              public Lock get() {
-                return new ReentrantLock(true);
-              }
-            }),
+        Striped.custom(100, FAIR_LOCK_SUPPLER),
+        Striped.custom(256, FAIR_LOCK_SUPPLER),
         Striped.semaphore(100, 1),
         Striped.semaphore(256, 1));
   }
@@ -83,6 +71,14 @@ public class StripedTest extends TestCase {
         @Override
         public Lock get() {
           return new ReentrantLock();
+        }
+      };
+
+  private static final Supplier<Lock> FAIR_LOCK_SUPPLER =
+      new Supplier<Lock>() {
+        @Override
+        public Lock get() {
+          return new ReentrantLock(true);
         }
       };
 
@@ -108,6 +104,8 @@ public class StripedTest extends TestCase {
         .add(new Striped.SmallLazyStriped<Semaphore>(64, SEMAPHORE_SUPPLER))
         .add(new Striped.LargeLazyStriped<Semaphore>(50, SEMAPHORE_SUPPLER))
         .add(new Striped.LargeLazyStriped<Semaphore>(64, SEMAPHORE_SUPPLER))
+        .add(Striped.lazyWeakCustom(50, FAIR_LOCK_SUPPLER))
+        .add(Striped.lazyWeakCustom(64, FAIR_LOCK_SUPPLER))
         .build();
   }
 
@@ -129,7 +127,7 @@ public class StripedTest extends TestCase {
     assertTrue(Striped.lazyWeakLock(256).size() == 256);
   }
 
-
+  @AndroidIncompatible // Presumably GC doesn't trigger, despite our efforts.
   public void testWeakImplementations() {
     for (Striped<?> striped : weakImplementations()) {
       WeakReference<Object> weakRef = new WeakReference<>(striped.get(new Object()));
@@ -137,7 +135,7 @@ public class StripedTest extends TestCase {
     }
   }
 
-
+  @AndroidIncompatible // Presumably GC doesn't trigger, despite our efforts.
   public void testWeakReadWrite() {
     Striped<ReadWriteLock> striped = Striped.lazyWeakReadWriteLock(1000);
     Object key = new Object();
@@ -150,7 +148,7 @@ public class StripedTest extends TestCase {
     readLock.unlock();
   }
 
-
+  @AndroidIncompatible // Presumably GC doesn't trigger, despite our efforts.
   public void testStrongImplementations() {
     for (Striped<?> striped : strongImplementations()) {
       WeakReference<Object> weakRef = new WeakReference<>(striped.get(new Object()));

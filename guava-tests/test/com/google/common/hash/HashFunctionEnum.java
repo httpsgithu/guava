@@ -16,12 +16,14 @@
 
 package com.google.common.hash;
 
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * An enum that contains all of the known hash functions.
  *
  * @author Kurt Alfred Kluever
  */
+@NullUnmarked
 enum HashFunctionEnum {
   ADLER32(Hashing.adler32()),
   CRC32(Hashing.crc32()),
@@ -32,6 +34,7 @@ enum HashFunctionEnum {
   MD5(Hashing.md5()),
   MURMUR3_128(Hashing.murmur3_128()),
   MURMUR3_32(Hashing.murmur3_32()),
+  MURMUR3_32_FIXED(Hashing.murmur3_32_fixed()),
   SHA1(Hashing.sha1()),
   SHA256(Hashing.sha256()),
   SHA384(Hashing.sha384()),
@@ -45,7 +48,7 @@ enum HashFunctionEnum {
 
   private final HashFunction hashFunction;
 
-  private HashFunctionEnum(HashFunction hashFunction) {
+  HashFunctionEnum(HashFunction hashFunction) {
     this.hashFunction = hashFunction;
   }
 

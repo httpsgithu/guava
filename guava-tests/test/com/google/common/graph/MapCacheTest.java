@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.TreeMap;
+import org.jspecify.annotations.NullUnmarked;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 @AndroidIncompatible
 // TODO(cpovirk): Figure out Android JUnit 4 support. Does it work with Gingerbread? @RunWith?
 @RunWith(Parameterized.class)
+@NullUnmarked
 public final class MapCacheTest {
   private final MapIteratorCache<String, String> mapCache;
 
@@ -89,26 +91,5 @@ public final class MapCacheTest {
     assertThat(mapCache.get(fooReference1)).isEqualTo("bar"); // ensure first reference is cached
     assertThat(mapCache.remove(fooReference2)).isEqualTo("bar");
     assertThat(mapCache.get(fooReference1)).isNull();
-  }
-
-  @Test
-  public void testHandleNulls() {
-    mapCache.put("foo", "bar");
-    mapCache.put("non-null key", null);
-    mapCache.put(null, "non-null value");
-
-    assertThat(mapCache.get("foo")).isEqualTo("bar");
-    assertThat(mapCache.get("non-null key")).isNull();
-    assertThat(mapCache.get(null)).isEqualTo("non-null value");
-
-    assertThat(mapCache.containsKey("foo")).isTrue();
-    assertThat(mapCache.containsKey("bar")).isFalse();
-    assertThat(mapCache.containsKey("non-null key")).isTrue();
-    assertThat(mapCache.containsKey(null)).isTrue();
-
-    // Test again - in reverse order.
-    assertThat(mapCache.get(null)).isEqualTo("non-null value");
-    assertThat(mapCache.get("non-null key")).isNull();
-    assertThat(mapCache.get("foo")).isEqualTo("bar");
   }
 }

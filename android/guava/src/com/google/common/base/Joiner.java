@@ -15,17 +15,18 @@
 package com.google.common.base;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An object which joins pieces of text (specified as an array, {@link Iterable}, varargs or even a
@@ -117,14 +118,17 @@ public class Joiner {
    * separator between each, to {@code appendable}.
    */
   @CanIgnoreReturnValue
-  public final <A extends Appendable> A appendTo(A appendable, Object[] parts) throws IOException {
-    return appendTo(appendable, Arrays.asList(parts));
+  public final <A extends Appendable> A appendTo(A appendable, @Nullable Object[] parts)
+      throws IOException {
+    @SuppressWarnings("nullness") // TODO: b/316358623 - Remove suppression after fixing checker
+    List<?> partsList = Arrays.<@Nullable Object>asList(parts);
+    return appendTo(appendable, partsList);
   }
 
   /** Appends to {@code appendable} the string representation of each of the remaining arguments. */
   @CanIgnoreReturnValue
   public final <A extends Appendable> A appendTo(
-      A appendable, @NullableDecl Object first, @NullableDecl Object second, Object... rest)
+      A appendable, @Nullable Object first, @Nullable Object second, @Nullable Object... rest)
       throws IOException {
     return appendTo(appendable, iterable(first, second, rest));
   }
@@ -162,8 +166,10 @@ public class Joiner {
    * Iterable)}, except that it does not throw {@link IOException}.
    */
   @CanIgnoreReturnValue
-  public final StringBuilder appendTo(StringBuilder builder, Object[] parts) {
-    return appendTo(builder, Arrays.asList(parts));
+  public final StringBuilder appendTo(StringBuilder builder, @Nullable Object[] parts) {
+    @SuppressWarnings("nullness") // TODO: b/316358623 - Remove suppression after fixing checker
+    List<?> partsList = Arrays.<@Nullable Object>asList(parts);
+    return appendTo(builder, partsList);
   }
 
   /**
@@ -174,9 +180,9 @@ public class Joiner {
   @CanIgnoreReturnValue
   public final StringBuilder appendTo(
       StringBuilder builder,
-      @NullableDecl Object first,
-      @NullableDecl Object second,
-      Object... rest) {
+      @Nullable Object first,
+      @Nullable Object second,
+      @Nullable Object... rest) {
     return appendTo(builder, iterable(first, second, rest));
   }
 
@@ -184,9 +190,19 @@ public class Joiner {
    * Returns a string containing the string representation of each of {@code parts}, using the
    * previously configured separator between each.
    */
-  public final String join(Iterable<?> parts) {
+  public String join(Iterable<?> parts) {
+    // We don't use the same optimization here as in the JRE flavor.
+    // TODO: b/381289911 - Evaluate the performance impact of doing so.
     return join(parts.iterator());
   }
+
+  /*
+   * TODO: b/381289911 - Make the Iterator overload use StringJoiner (including Android or not)—or
+   * some other optimization, given that StringJoiner can over-allocate:
+   * https://bugs.openjdk.org/browse/JDK-8305774
+   */
+
+  // TODO: b/381289911 - Optimize MapJoiner similarly to Joiner (including Android or not).
 
   /**
    * Returns a string containing the string representation of each of {@code parts}, using the
@@ -202,8 +218,10 @@ public class Joiner {
    * Returns a string containing the string representation of each of {@code parts}, using the
    * previously configured separator between each.
    */
-  public final String join(Object[] parts) {
-    return join(Arrays.asList(parts));
+  public final String join(@Nullable Object[] parts) {
+    @SuppressWarnings("nullness") // TODO: b/316358623 - Remove suppression after fixing checker
+    List<?> partsList = Arrays.<@Nullable Object>asList(parts);
+    return join(partsList);
   }
 
   /**
@@ -211,7 +229,7 @@ public class Joiner {
    * configured separator between each.
    */
   public final String join(
-      @NullableDecl Object first, @NullableDecl Object second, Object... rest) {
+      @Nullable Object first, @Nullable Object second, @Nullable Object... rest) {
     return join(iterable(first, second, rest));
   }
 
@@ -219,11 +237,11 @@ public class Joiner {
    * Returns a joiner with the same behavior as this one, except automatically substituting {@code
    * nullText} for any provided null elements.
    */
-  public Joiner useForNull(final String nullText) {
+  public Joiner useForNull(String nullText) {
     checkNotNull(nullText);
     return new Joiner(this) {
       @Override
-      CharSequence toString(@NullableDecl Object part) {
+      CharSequence toString(@Nullable Object part) {
         return (part == null) ? nullText : Joiner.this.toString(part);
       }
 
@@ -245,6 +263,12 @@ public class Joiner {
    */
   public Joiner skipNulls() {
     return new Joiner(this) {
+      @Override
+      @SuppressWarnings("JoinIterableIterator") // suggests infinite recursion
+      public String join(Iterable<? extends @Nullable Object> parts) {
+        return join(parts.iterator());
+      }
+
       @Override
       public <A extends Appendable> A appendTo(A appendable, Iterator<?> parts) throws IOException {
         checkNotNull(appendable, "appendable");
@@ -348,7 +372,6 @@ public class Joiner {
      *
      * @since 10.0
      */
-    @Beta
     @CanIgnoreReturnValue
     public <A extends Appendable> A appendTo(A appendable, Iterable<? extends Entry<?, ?>> entries)
         throws IOException {
@@ -361,7 +384,6 @@ public class Joiner {
      *
      * @since 11.0
      */
-    @Beta
     @CanIgnoreReturnValue
     public <A extends Appendable> A appendTo(A appendable, Iterator<? extends Entry<?, ?>> parts)
         throws IOException {
@@ -389,7 +411,6 @@ public class Joiner {
      *
      * @since 10.0
      */
-    @Beta
     @CanIgnoreReturnValue
     public StringBuilder appendTo(StringBuilder builder, Iterable<? extends Entry<?, ?>> entries) {
       return appendTo(builder, entries.iterator());
@@ -402,7 +423,6 @@ public class Joiner {
      *
      * @since 11.0
      */
-    @Beta
     @CanIgnoreReturnValue
     public StringBuilder appendTo(StringBuilder builder, Iterator<? extends Entry<?, ?>> entries) {
       try {
@@ -427,7 +447,6 @@ public class Joiner {
      *
      * @since 10.0
      */
-    @Beta
     public String join(Iterable<? extends Entry<?, ?>> entries) {
       return join(entries.iterator());
     }
@@ -438,7 +457,6 @@ public class Joiner {
      *
      * @since 11.0
      */
-    @Beta
     public String join(Iterator<? extends Entry<?, ?>> entries) {
       return appendTo(new StringBuilder(), entries).toString();
     }
@@ -452,22 +470,40 @@ public class Joiner {
     }
   }
 
-  CharSequence toString(Object part) {
-    checkNotNull(part); // checkNotNull for GWT (do not optimize).
+  // TODO(cpovirk): Rename to "toCharSequence."
+  CharSequence toString(@Nullable Object part) {
+    /*
+     * requireNonNull is not safe: Joiner.on(...).join(somethingThatContainsNull) will indeed throw.
+     * However, Joiner.on(...).useForNull(...).join(somethingThatContainsNull) *is* safe -- because
+     * it returns a subclass of Joiner that overrides this method to tolerate null inputs.
+     *
+     * Unfortunately, we don't distinguish between these two cases in our public API: Joiner.on(...)
+     * and Joiner.on(...).useForNull(...) both declare the same return type: plain Joiner. To ensure
+     * that users *can* pass null arguments to Joiner, we annotate it as if it always tolerates null
+     * inputs, rather than as if it never tolerates them.
+     *
+     * We rely on checkers to implement special cases to catch dangerous calls to join(), etc. based
+     * on what they know about the particular Joiner instances the calls are performed on.
+     *
+     * (In addition to useForNull, we also offer skipNulls. It, too, tolerates null inputs, but its
+     * tolerance is implemented differently: Its implementation avoids calling this toString(Object)
+     * method in the first place.)
+     */
+    requireNonNull(part);
     return (part instanceof CharSequence) ? (CharSequence) part : part.toString();
   }
 
-  private static Iterable<Object> iterable(
-      final Object first, final Object second, final Object[] rest) {
+  private static Iterable<@Nullable Object> iterable(
+      @Nullable Object first, @Nullable Object second, @Nullable Object[] rest) {
     checkNotNull(rest);
-    return new AbstractList<Object>() {
+    return new AbstractList<@Nullable Object>() {
       @Override
       public int size() {
         return rest.length + 2;
       }
 
       @Override
-      public Object get(int index) {
+      public @Nullable Object get(int index) {
         switch (index) {
           case 0:
             return first;
@@ -478,5 +514,24 @@ public class Joiner {
         }
       }
     };
+  }
+
+  // cloned from ImmutableCollection
+  private static int expandedCapacity(int oldCapacity, int minCapacity) {
+    if (minCapacity < 0) {
+      throw new IllegalArgumentException("cannot store more than Integer.MAX_VALUE elements");
+    } else if (minCapacity <= oldCapacity) {
+      return oldCapacity;
+    }
+    // careful of overflow!
+    int newCapacity = oldCapacity + (oldCapacity >> 1) + 1;
+    if (newCapacity < minCapacity) {
+      newCapacity = Integer.highestOneBit(minCapacity - 1) << 1;
+    }
+    if (newCapacity < 0) {
+      newCapacity = Integer.MAX_VALUE;
+      // guaranteed to be >= newCapacity
+    }
+    return newCapacity;
   }
 }

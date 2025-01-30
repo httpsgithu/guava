@@ -25,6 +25,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Benchmark for the {@link CharMatcher} class.
@@ -33,6 +34,7 @@ import java.util.Random;
  * @author Kevin Bourrillion
  * @author David Richter
  */
+@NullUnmarked
 public class CharMatcherBenchmark {
 
   // Caliper injects params automatically
@@ -78,7 +80,6 @@ public class CharMatcherBenchmark {
     if (size == Size.SMALL) {
       BitSet tmp = new BitSet();
       matcher.setBits(tmp);
-      int matchedCharCount = tmp.cardinality();
       this.matcher = SmallCharMatcher.from(tmp, "");
     }
     this.string = checkString(length, percent, config.matchingChars, new Random(), forceSlow, web);
@@ -130,9 +131,9 @@ public class CharMatcherBenchmark {
       list.set(list.indexOf(0), list.get(0));
       list.set(0, 0);
     }
-    // Get threshold in the range [0, length], rounding up to ensure that non
-    // zero percent values result in a non-zero threshold (so we always have at
-    // least one matching character).
+    // Get threshold in the range [0, length], rounding up to ensure that
+    // non-zero percent values result in a non-zero threshold (so we always
+    // have at least one matching character).
     int threshold = ((percent * length) + 99) / 100;
     StringBuilder builder = new StringBuilder(length);
     for (int n = 0; n < length; n++) {

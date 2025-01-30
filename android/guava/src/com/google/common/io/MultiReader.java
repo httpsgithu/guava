@@ -14,12 +14,15 @@
 
 package com.google.common.io;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.Iterator;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A {@link Reader} that concatenates multiple readers.
@@ -27,10 +30,11 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * @author Bin Zhu
  * @since 1.0
  */
+@J2ktIncompatible
 @GwtIncompatible
 class MultiReader extends Reader {
   private final Iterator<? extends CharSource> it;
-  @NullableDecl private Reader current;
+  private @Nullable Reader current;
 
   MultiReader(Iterator<? extends CharSource> readers) throws IOException {
     this.it = readers;
@@ -46,7 +50,8 @@ class MultiReader extends Reader {
   }
 
   @Override
-  public int read(@NullableDecl char[] cbuf, int off, int len) throws IOException {
+  public int read(char[] cbuf, int off, int len) throws IOException {
+    checkNotNull(cbuf);
     if (current == null) {
       return -1;
     }

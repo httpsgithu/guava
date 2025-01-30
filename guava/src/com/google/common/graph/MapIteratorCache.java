@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A map-like data structure that wraps a backing map and caches values while iterating through
@@ -60,40 +60,50 @@ class MapIteratorCache<K, V> {
   }
 
   @CanIgnoreReturnValue
-  public final V put(@Nullable K key, @Nullable V value) {
+  final @Nullable V put(K key, V value) {
+    checkNotNull(key);
+    checkNotNull(value);
     clearCache();
     return backingMap.put(key, value);
   }
 
   @CanIgnoreReturnValue
-  public final V remove(@Nullable Object key) {
+  final @Nullable V remove(Object key) {
+    checkNotNull(key);
     clearCache();
     return backingMap.remove(key);
   }
 
-  public final void clear() {
+  final void clear() {
     clearCache();
     backingMap.clear();
   }
 
-  public V get(@Nullable Object key) {
+  @Nullable V get(Object key) {
+    checkNotNull(key);
     V value = getIfCached(key);
-    return (value != null) ? value : getWithoutCaching(key);
+    // TODO(b/192579700): Use a ternary once it no longer confuses our nullness checker.
+    if (value == null) {
+      return getWithoutCaching(key);
+    } else {
+      return value;
+    }
   }
 
-  public final V getWithoutCaching(@Nullable Object key) {
+  final @Nullable V getWithoutCaching(Object key) {
+    checkNotNull(key);
     return backingMap.get(key);
   }
 
-  public final boolean containsKey(@Nullable Object key) {
+  final boolean containsKey(@Nullable Object key) {
     return getIfCached(key) != null || backingMap.containsKey(key);
   }
 
-  public final Set<K> unmodifiableKeySet() {
+  final Set<K> unmodifiableKeySet() {
     return new AbstractSet<K>() {
       @Override
       public UnmodifiableIterator<K> iterator() {
-        final Iterator<Entry<K, V>> entryIterator = backingMap.entrySet().iterator();
+        Iterator<Entry<K, V>> entryIterator = backingMap.entrySet().iterator();
 
         return new UnmodifiableIterator<K>() {
           @Override
@@ -124,7 +134,7 @@ class MapIteratorCache<K, V> {
 
   // Internal methods (package-visible, but treat as only subclass-visible)
 
-  V getIfCached(@Nullable Object key) {
+  @Nullable V getIfCached(@Nullable Object key) {
     Entry<K, V> entry = cacheEntry; // store local reference for thread-safety
 
     // Check cache. We use == on purpose because it's cheaper and a cache miss is ok.

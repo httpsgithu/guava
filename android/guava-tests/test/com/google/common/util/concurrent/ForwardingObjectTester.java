@@ -26,12 +26,14 @@ import com.google.common.collect.Iterables;
 import com.google.common.testing.ForwardingWrapperTester;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
- * Tester for typical subclass of {@link ForwardingObject} by using EasyMock partial mocks.
+ * Tester for typical subclass of {@link ForwardingObject} by using Mockito.
  *
  * @author Ben Yu
  */
+@NullUnmarked
 final class ForwardingObjectTester {
 
   private static final Method DELEGATE_METHOD;
@@ -61,7 +63,7 @@ final class ForwardingObjectTester {
             new Function<Object, T>() {
               @Override
               public T apply(Object delegate) {
-                T mock = mock(forwarderClass, CALLS_REAL_METHODS.get());
+                T mock = mock(forwarderClass, CALLS_REAL_METHODS);
                 try {
                   T stubber = doReturn(delegate).when(mock);
                   DELEGATE_METHOD.invoke(stubber);

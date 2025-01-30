@@ -23,7 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Thread that finalizes referents. All references should implement {@code
@@ -129,8 +129,7 @@ public class Finalizer implements Runnable {
       PhantomReference<Object> frqReference) {
     this.queue = queue;
 
-    this.finalizableReferenceClassReference =
-        new WeakReference<Class<?>>(finalizableReferenceClass);
+    this.finalizableReferenceClassReference = new WeakReference<>(finalizableReferenceClass);
 
     // Keep track of the FRQ that started us so we know when to stop.
     this.frqReference = frqReference;
@@ -152,41 +151,62 @@ public class Finalizer implements Runnable {
   }
 
   /**
-   * Cleans up a single reference. Catches and logs all throwables.
+   * Cleans up the given reference and any other references already in the queue. Catches and logs
+   * all throwables.
    *
-   * @return true if the caller should continue, false if the associated FinalizableReferenceQueue
-   *     is no longer referenced.
+   * @return true if the caller should continue to wait for more references to be added to the
+   *     queue, false if the associated FinalizableReferenceQueue is no longer referenced.
    */
-  private boolean cleanUp(Reference<?> reference) {
+  private boolean cleanUp(Reference<?> firstReference) {
     Method finalizeReferentMethod = getFinalizeReferentMethod();
     if (finalizeReferentMethod == null) {
       return false;
     }
-    do {
-      /*
-       * This is for the benefit of phantom references. Weak and soft references will have already
-       * been cleared by this point.
-       */
-      reference.clear();
 
-      if (reference == frqReference) {
-        /*
-         * The client no longer has a reference to the FinalizableReferenceQueue. We can stop.
-         */
+    if (!finalizeReference(firstReference, finalizeReferentMethod)) {
+      return false;
+    }
+
+    /*
+     * Loop as long as we have references available so as not to waste CPU looking up the Method
+     * over and over again.
+     */
+    while (true) {
+      Reference<?> furtherReference = queue.poll();
+      if (furtherReference == null) {
+        return true;
+      }
+      if (!finalizeReference(furtherReference, finalizeReferentMethod)) {
         return false;
       }
+    }
+  }
 
-      try {
-        finalizeReferentMethod.invoke(reference);
-      } catch (Throwable t) {
-        logger.log(Level.SEVERE, "Error cleaning up after reference.", t);
-      }
+  /**
+   * Cleans up the given reference. Catches and logs all throwables.
+   *
+   * @return true if the caller should continue to clean up references from the queue, false if the
+   *     associated FinalizableReferenceQueue is no longer referenced.
+   */
+  private boolean finalizeReference(Reference<?> reference, Method finalizeReferentMethod) {
+    /*
+     * This is for the benefit of phantom references. Weak and soft references will have already
+     * been cleared by this point.
+     */
+    reference.clear();
 
+    if (reference == frqReference) {
       /*
-       * Loop as long as we have references available so as not to waste CPU looking up the Method
-       * over and over again.
+       * The client no longer has a reference to the FinalizableReferenceQueue. We can stop.
        */
-    } while ((reference = queue.poll()) != null);
+      return false;
+    }
+
+    try {
+      finalizeReferentMethod.invoke(reference);
+    } catch (Throwable t) {
+      logger.log(Level.SEVERE, "Error cleaning up after reference.", t);
+    }
     return true;
   }
 

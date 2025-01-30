@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A cache which forwards all its method calls to another cache. Subclasses should override one or
@@ -41,31 +41,45 @@ public abstract class ForwardingCache<K, V> extends ForwardingObject implements 
   @Override
   protected abstract Cache<K, V> delegate();
 
-  /** @since 11.0 */
+  /**
+   * @since 11.0
+   */
   @Override
   public @Nullable V getIfPresent(Object key) {
     return delegate().getIfPresent(key);
   }
 
-  /** @since 11.0 */
+  /**
+   * @since 11.0
+   */
   @Override
   public V get(K key, Callable<? extends V> valueLoader) throws ExecutionException {
     return delegate().get(key, valueLoader);
   }
 
-  /** @since 11.0 */
+  /**
+   * @since 11.0
+   */
   @Override
-  public ImmutableMap<K, V> getAllPresent(Iterable<?> keys) {
+  /*
+   * <? extends Object> is mostly the same as <?> to plain Java. But to nullness checkers, they
+   * differ: <? extends Object> means "non-null types," while <?> means "all types."
+   */
+  public ImmutableMap<K, V> getAllPresent(Iterable<? extends Object> keys) {
     return delegate().getAllPresent(keys);
   }
 
-  /** @since 11.0 */
+  /**
+   * @since 11.0
+   */
   @Override
   public void put(K key, V value) {
     delegate().put(key, value);
   }
 
-  /** @since 12.0 */
+  /**
+   * @since 12.0
+   */
   @Override
   public void putAll(Map<? extends K, ? extends V> m) {
     delegate().putAll(m);
@@ -76,9 +90,12 @@ public abstract class ForwardingCache<K, V> extends ForwardingObject implements 
     delegate().invalidate(key);
   }
 
-  /** @since 11.0 */
+  /**
+   * @since 11.0
+   */
   @Override
-  public void invalidateAll(Iterable<?> keys) {
+  // For discussion of <? extends Object>, see getAllPresent.
+  public void invalidateAll(Iterable<? extends Object> keys) {
     delegate().invalidateAll(keys);
   }
 

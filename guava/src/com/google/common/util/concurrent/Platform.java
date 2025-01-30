@@ -14,8 +14,11 @@
 
 package com.google.common.util.concurrent;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Thread.currentThread;
+
 import com.google.common.annotations.GwtCompatible;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Methods factored out so that they can be emulated differently in GWT. */
 @GwtCompatible(emulated = true)
@@ -23,6 +26,13 @@ final class Platform {
   static boolean isInstanceOfThrowableClass(
       @Nullable Throwable t, Class<? extends Throwable> expectedClass) {
     return expectedClass.isInstance(t);
+  }
+
+  static void restoreInterruptIfIsInterruptedException(Throwable t) {
+    checkNotNull(t); // to satisfy NullPointerTester
+    if (t instanceof InterruptedException) {
+      currentThread().interrupt();
+    }
   }
 
   private Platform() {}

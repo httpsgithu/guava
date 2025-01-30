@@ -17,12 +17,12 @@
 package com.google.common.util.concurrent;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.util.concurrent.Futures.getDone;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import com.google.common.util.concurrent.internal.InternalFutureFailureAccess;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -33,25 +33,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Emulation for AbstractFuture in GWT. */
-public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
+@SuppressWarnings("nullness") // TODO(b/147136275): Remove once our checker understands & and |.
+public abstract class AbstractFuture<V extends @Nullable Object> extends InternalFutureFailureAccess
     implements ListenableFuture<V> {
+
+  static final boolean GENERATE_CANCELLATION_CAUSES = false;
 
   /**
    * Tag interface marking trusted subclasses. This enables some optimizations. The implementation
    * of this interface must also be an AbstractFuture and must not override or expose for overriding
    * any of the public methods of ListenableFuture.
    */
-  interface Trusted<V> extends ListenableFuture<V> {}
+  interface Trusted<V extends @Nullable Object> extends ListenableFuture<V> {}
 
-  abstract static class TrustedFuture<V> extends AbstractFuture<V> implements Trusted<V> {
+  abstract static class TrustedFuture<V extends @Nullable Object> extends AbstractFuture<V>
+      implements Trusted<V> {
+    @CanIgnoreReturnValue
     @Override
     public final V get() throws InterruptedException, ExecutionException {
       return super.get();
     }
 
+    @CanIgnoreReturnValue
     @Override
     public final V get(long timeout, TimeUnit unit)
         throws InterruptedException, ExecutionException, TimeoutException {
@@ -73,6 +79,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       super.addListener(listener, executor);
     }
 
+    @CanIgnoreReturnValue
     @Override
     public final boolean cancel(boolean mayInterruptIfRunning) {
       return super.cancel(mayInterruptIfRunning);
@@ -83,8 +90,8 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
 
   private State state;
   private V value;
-  private Future<? extends V> delegate;
-  private Throwable throwable;
+  private @Nullable Future<? extends V> delegate;
+  private @Nullable Throwable throwable;
   private boolean mayInterruptIfRunning;
   private List<Listener> listeners;
 
@@ -93,6 +100,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     listeners = new ArrayList<Listener>();
   }
 
+  @CanIgnoreReturnValue
   @Override
   public boolean cancel(boolean mayInterruptIfRunning) {
     if (!state.permitsPublicUserToTransitionTo(State.CANCELLED)) {
@@ -126,12 +134,14 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   /*
    * ForwardingFluentFuture needs to override those methods, so they are not final.
    */
+  @CanIgnoreReturnValue
   @Override
   public V get() throws InterruptedException, ExecutionException {
     state.maybeThrowOnGet(throwable);
     return value;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public V get(long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
@@ -149,6 +159,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
+  @CanIgnoreReturnValue
   protected boolean setException(Throwable throwable) {
     checkNotNull(throwable);
     if (!state.permitsPublicUserToTransitionTo(State.FAILURE)) {
@@ -165,6 +176,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     notifyAndClearListeners();
   }
 
+  @CanIgnoreReturnValue
   protected boolean set(V value) {
     if (!state.permitsPublicUserToTransitionTo(State.VALUE)) {
       return false;
@@ -180,6 +192,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     notifyAndClearListeners();
   }
 
+  @CanIgnoreReturnValue
   protected boolean setFuture(ListenableFuture<? extends V> future) {
     checkNotNull(future);
 
@@ -225,11 +238,6 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     return null;
   }
 
-  final Throwable trustedGetException() {
-    checkState(state == State.FAILURE);
-    return throwable;
-  }
-
   final void maybePropagateCancellationTo(@Nullable Future<?> related) {
     if (related != null & isCancelled()) {
       related.cancel(wasInterrupted());
@@ -270,8 +278,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
    *
    * @return null if an explanation cannot be provided because the future is done.
    */
-  @Nullable
-  String pendingToString() {
+  @Nullable String pendingToString() {
     if (state == State.DELEGATED) {
       return "setFuture=[" + delegate + "]";
     }
@@ -299,7 +306,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       }
 
       @Override
-      void maybeThrowOnGet(Throwable cause) throws ExecutionException {
+      void maybeThrowOnGet(@Nullable Throwable cause) throws ExecutionException {
         throw new IllegalStateException("Cannot get() on a pending future.");
       }
 
@@ -315,7 +322,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       }
 
       @Override
-      void maybeThrowOnGet(Throwable cause) throws ExecutionException {
+      void maybeThrowOnGet(@Nullable Throwable cause) throws ExecutionException {
         throw new IllegalStateException("Cannot get() on a pending future.");
       }
 
@@ -326,7 +333,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     VALUE,
     FAILURE {
       @Override
-      void maybeThrowOnGet(Throwable cause) throws ExecutionException {
+      void maybeThrowOnGet(@Nullable Throwable cause) throws ExecutionException {
         throw new ExecutionException(cause);
       }
     },
@@ -337,7 +344,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       }
 
       @Override
-      void maybeThrowOnGet(Throwable cause) throws ExecutionException {
+      void maybeThrowOnGet(@Nullable Throwable cause) throws ExecutionException {
         // TODO(cpovirk): chain in a CancellationException created at the cancel() call?
         throw new CancellationException();
       }
@@ -351,7 +358,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       return false;
     }
 
-    void maybeThrowOnGet(Throwable cause) throws ExecutionException {}
+    void maybeThrowOnGet(@Nullable Throwable cause) throws ExecutionException {}
 
     boolean permitsPublicUserToTransitionTo(State state) {
       return false;

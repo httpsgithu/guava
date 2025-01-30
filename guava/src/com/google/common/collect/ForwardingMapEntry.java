@@ -16,12 +16,12 @@
 
 package com.google.common.collect;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.Objects;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A map entry which forwards all its method calls to another map entry. Subclasses should override
@@ -47,7 +47,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @since 2.0
  */
 @GwtCompatible
-public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implements Map.Entry<K, V> {
+public abstract class ForwardingMapEntry<K extends @Nullable Object, V extends @Nullable Object>
+    extends ForwardingObject implements Map.Entry<K, V> {
   // TODO(lowasser): identify places where thread safety is actually lost
 
   /** Constructor for use by subclasses. */
@@ -57,17 +58,21 @@ public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implemen
   protected abstract Entry<K, V> delegate();
 
   @Override
+  @ParametricNullness
   public K getKey() {
     return delegate().getKey();
   }
 
   @Override
+  @ParametricNullness
   public V getValue() {
     return delegate().getValue();
   }
 
   @Override
-  public V setValue(V value) {
+  @ParametricNullness
+  @CanIgnoreReturnValue
+  public V setValue(@ParametricNullness V value) {
     return delegate().setValue(value);
   }
 
@@ -117,7 +122,6 @@ public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implemen
    *
    * @since 7.0
    */
-  @Beta
   protected String standardToString() {
     return getKey() + "=" + getValue();
   }

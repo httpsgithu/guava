@@ -17,12 +17,13 @@
 package com.google.common.collect;
 
 import com.google.common.annotations.GwtCompatible;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import com.google.j2objc.annotations.WeakOuter;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A skeleton implementation of a descending multiset. Only needs {@code forwardMultiset()} and
@@ -31,10 +32,11 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * @author Louis Wasserman
  */
 @GwtCompatible(emulated = true)
-abstract class DescendingMultiset<E> extends ForwardingMultiset<E> implements SortedMultiset<E> {
+abstract class DescendingMultiset<E extends @Nullable Object> extends ForwardingMultiset<E>
+    implements SortedMultiset<E> {
   abstract SortedMultiset<E> forwardMultiset();
 
-  @NullableDecl private transient Comparator<? super E> comparator;
+  @LazyInit private transient @Nullable Comparator<? super E> comparator;
 
   @Override
   public Comparator<? super E> comparator() {
@@ -45,42 +47,45 @@ abstract class DescendingMultiset<E> extends ForwardingMultiset<E> implements So
     return result;
   }
 
-  @NullableDecl private transient NavigableSet<E> elementSet;
+  @LazyInit private transient @Nullable NavigableSet<E> elementSet;
 
   @Override
   public NavigableSet<E> elementSet() {
     NavigableSet<E> result = elementSet;
     if (result == null) {
-      return elementSet = new SortedMultisets.NavigableElementSet<E>(this);
+      return elementSet = new SortedMultisets.NavigableElementSet<>(this);
     }
     return result;
   }
 
   @Override
-  public Entry<E> pollFirstEntry() {
+  public @Nullable Entry<E> pollFirstEntry() {
     return forwardMultiset().pollLastEntry();
   }
 
   @Override
-  public Entry<E> pollLastEntry() {
+  public @Nullable Entry<E> pollLastEntry() {
     return forwardMultiset().pollFirstEntry();
   }
 
   @Override
-  public SortedMultiset<E> headMultiset(E toElement, BoundType boundType) {
+  public SortedMultiset<E> headMultiset(@ParametricNullness E toElement, BoundType boundType) {
     return forwardMultiset().tailMultiset(toElement, boundType).descendingMultiset();
   }
 
   @Override
   public SortedMultiset<E> subMultiset(
-      E fromElement, BoundType fromBoundType, E toElement, BoundType toBoundType) {
+      @ParametricNullness E fromElement,
+      BoundType fromBoundType,
+      @ParametricNullness E toElement,
+      BoundType toBoundType) {
     return forwardMultiset()
         .subMultiset(toElement, toBoundType, fromElement, fromBoundType)
         .descendingMultiset();
   }
 
   @Override
-  public SortedMultiset<E> tailMultiset(E fromElement, BoundType boundType) {
+  public SortedMultiset<E> tailMultiset(@ParametricNullness E fromElement, BoundType boundType) {
     return forwardMultiset().headMultiset(fromElement, boundType).descendingMultiset();
   }
 
@@ -95,18 +100,18 @@ abstract class DescendingMultiset<E> extends ForwardingMultiset<E> implements So
   }
 
   @Override
-  public Entry<E> firstEntry() {
+  public @Nullable Entry<E> firstEntry() {
     return forwardMultiset().lastEntry();
   }
 
   @Override
-  public Entry<E> lastEntry() {
+  public @Nullable Entry<E> lastEntry() {
     return forwardMultiset().firstEntry();
   }
 
   abstract Iterator<Entry<E>> entryIterator();
 
-  @NullableDecl private transient Set<Entry<E>> entrySet;
+  @LazyInit private transient @Nullable Set<Entry<E>> entrySet;
 
   @Override
   public Set<Entry<E>> entrySet() {
@@ -141,12 +146,13 @@ abstract class DescendingMultiset<E> extends ForwardingMultiset<E> implements So
   }
 
   @Override
-  public Object[] toArray() {
+  public @Nullable Object[] toArray() {
     return standardToArray();
   }
 
   @Override
-  public <T> T[] toArray(T[] array) {
+  @SuppressWarnings("nullness") // b/192354773 in our checker affects toArray declarations
+  public <T extends @Nullable Object> T[] toArray(T[] array) {
     return standardToArray(array);
   }
 

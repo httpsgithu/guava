@@ -14,12 +14,11 @@
 
 package com.google.common.collect;
 
-import com.google.common.annotations.Beta;
-import com.google.errorprone.annotations.DoNotMock;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.errorprone.annotations.DoNotMock;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A set comprising zero or more {@linkplain Range#isEmpty nonempty}, {@linkplain
@@ -43,13 +42,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * <p>For a {@link Set} whose contents are specified by a {@link Range}, see {@link ContiguousSet}.
  *
  * <p>See the Guava User Guide article on <a href=
- * "https://github.com/google/guava/wiki/NewCollectionTypesExplained#rangeset"> RangeSets</a>.
+ * "https://github.com/google/guava/wiki/NewCollectionTypesExplained#rangeset">RangeSets</a>.
  *
  * @author Kevin Bourrillion
  * @author Louis Wasserman
  * @since 14.0
  */
-@Beta
+@SuppressWarnings("rawtypes") // https://github.com/google/guava/issues/989
 @DoNotMock("Use ImmutableRangeSet or TreeRangeSet")
 @GwtIncompatible
 public interface RangeSet<C extends Comparable> {
@@ -64,7 +63,7 @@ public interface RangeSet<C extends Comparable> {
    * Returns the unique range from this range set that {@linkplain Range#contains contains} {@code
    * value}, or {@code null} if this range set does not contain {@code value}.
    */
-  Range<C> rangeContaining(C value);
+  @Nullable Range<C> rangeContaining(C value);
 
   /**
    * Returns {@code true} if there exists a non-empty range enclosed by both a member range in this

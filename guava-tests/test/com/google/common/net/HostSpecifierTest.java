@@ -23,6 +23,7 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import java.text.ParseException;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * {@link TestCase} for {@link HostSpecifier}. This is a relatively cursory test, as HostSpecifier
@@ -32,6 +33,7 @@ import junit.framework.TestCase;
  *
  * @author Craig Berry
  */
+@NullUnmarked
 public final class HostSpecifierTest extends TestCase {
 
   private static final ImmutableList<String> GOOD_IPS =
@@ -92,8 +94,9 @@ public final class HostSpecifierTest extends TestCase {
   }
 
   private void assertGood(String spec) throws ParseException {
-    HostSpecifier.fromValid(spec); // Throws exception if not working correctly
-    HostSpecifier.from(spec);
+    // Throws exception if not working correctly
+    HostSpecifier unused = HostSpecifier.fromValid(spec);
+    unused = HostSpecifier.from(spec);
     assertTrue(HostSpecifier.isValid(spec));
   }
 

@@ -28,7 +28,7 @@ import com.google.common.collect.Ordering;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Comparator;
 import java.util.Map;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Used to represent the order of elements in a data structure that supports different options for
@@ -50,8 +50,7 @@ public final class ElementOrder<T> {
   private final Type type;
 
   @SuppressWarnings("Immutable") // Hopefully the comparator provided is immutable!
-  @NullableDecl
-  private final Comparator<T> comparator;
+  private final @Nullable Comparator<T> comparator;
 
   /**
    * The type of ordering that this object specifies.
@@ -71,7 +70,7 @@ public final class ElementOrder<T> {
     SORTED
   }
 
-  private ElementOrder(Type type, @NullableDecl Comparator<T> comparator) {
+  private ElementOrder(Type type, @Nullable Comparator<T> comparator) {
     this.type = checkNotNull(type);
     this.comparator = comparator;
     checkState((type == Type.SORTED) == (comparator != null));
@@ -79,7 +78,7 @@ public final class ElementOrder<T> {
 
   /** Returns an instance which specifies that no ordering is guaranteed. */
   public static <S> ElementOrder<S> unordered() {
-    return new ElementOrder<S>(Type.UNORDERED, null);
+    return new ElementOrder<>(Type.UNORDERED, null);
   }
 
   /**
@@ -119,19 +118,19 @@ public final class ElementOrder<T> {
    * @since 29.0
    */
   public static <S> ElementOrder<S> stable() {
-    return new ElementOrder<S>(Type.STABLE, null);
+    return new ElementOrder<>(Type.STABLE, null);
   }
 
   /** Returns an instance which specifies that insertion ordering is guaranteed. */
   public static <S> ElementOrder<S> insertion() {
-    return new ElementOrder<S>(Type.INSERTION, null);
+    return new ElementOrder<>(Type.INSERTION, null);
   }
 
   /**
    * Returns an instance which specifies that the natural ordering of the elements is guaranteed.
    */
   public static <S extends Comparable<? super S>> ElementOrder<S> natural() {
-    return new ElementOrder<S>(Type.SORTED, Ordering.<S>natural());
+    return new ElementOrder<>(Type.SORTED, Ordering.<S>natural());
   }
 
   /**
@@ -139,7 +138,7 @@ public final class ElementOrder<T> {
    * determined by {@code comparator}.
    */
   public static <S> ElementOrder<S> sorted(Comparator<S> comparator) {
-    return new ElementOrder<S>(Type.SORTED, checkNotNull(comparator));
+    return new ElementOrder<>(Type.SORTED, checkNotNull(comparator));
   }
 
   /** Returns the type of ordering used. */
@@ -160,7 +159,7 @@ public final class ElementOrder<T> {
   }
 
   @Override
-  public boolean equals(@NullableDecl Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }
@@ -196,9 +195,8 @@ public final class ElementOrder<T> {
         return Maps.newLinkedHashMapWithExpectedSize(expectedSize);
       case SORTED:
         return Maps.newTreeMap(comparator());
-      default:
-        throw new AssertionError();
     }
+    throw new AssertionError();
   }
 
   @SuppressWarnings("unchecked")

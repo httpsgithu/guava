@@ -26,6 +26,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.j2objc.annotations.J2ObjCIncompatible;
 import java.time.Duration;
@@ -36,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * successive readings of "now" in the same process.
  *
  * <p>In contrast, <i>wall time</i> is a reading of "now" as given by a method like
- * {@link System#currentTimeMillis()}, best represented as an {@link Instant}. Such values
+ * {@link System#currentTimeMillis()}, best represented as an {@link java.time.Instant}. Such values
  * <i>can</i> be subtracted to obtain a {@code Duration} (such as by {@code Duration.between}), but
  * doing so does <i>not</i> give a reliable measurement of elapsed time, because wall time readings
  * are inherently approximate, routinely affected by periodic clock corrections. Because this class
@@ -50,6 +51,12 @@ import java.util.concurrent.TimeUnit;
  *   <li>An alternative source of nanosecond ticks can be substituted, for example for testing or
  *       performance reasons, without affecting most of your code.
  * </ul>
+ *
+ * <p>The one downside of {@code Stopwatch} relative to {@link System#nanoTime()} is that {@code
+ * Stopwatch} requires object allocation and additional method calls, which can reduce the accuracy
+ * of the elapsed times reported. {@code Stopwatch} is still suitable for logging and metrics where
+ * reasonably accurate values are sufficient. If the uncommon case that you need to maximize
+ * accuracy, use {@code System.nanoTime()} directly instead.
  *
  * <p>Basic usage:
  *
@@ -79,7 +86,7 @@ import java.util.concurrent.TimeUnit;
  * Stopwatch.createStarted(
  *      new Ticker() {
  *        public long read() {
- *          return android.os.SystemClock.elapsedRealtimeNanos();
+ *          return android.os.SystemClock.elapsedRealtimeNanos(); // requires API Level 17
  *        }
  *      });
  * }</pre>
@@ -89,7 +96,6 @@ import java.util.concurrent.TimeUnit;
  */
 @GwtCompatible(emulated = true)
 @SuppressWarnings("GoodTime") // lots of violations
-@ElementTypesAreNonnullByDefault
 public final class Stopwatch {
   private final Ticker ticker;
   private boolean isRunning;
@@ -215,8 +221,9 @@ public final class Stopwatch {
    * Returns the current elapsed time shown on this stopwatch as a {@link Duration}. Unlike {@link
    * #elapsed(TimeUnit)}, this method does not lose any precision due to rounding.
    *
-   * @since 22.0
+   * @since 22.0 (but only since 33.4.0 in the Android flavor)
    */
+  @J2ktIncompatible
   @GwtIncompatible
   @J2ObjCIncompatible
   public Duration elapsed() {
@@ -273,8 +280,7 @@ public final class Stopwatch {
         return "h";
       case DAYS:
         return "d";
-      default:
-        throw new AssertionError();
     }
+    throw new AssertionError();
   }
 }

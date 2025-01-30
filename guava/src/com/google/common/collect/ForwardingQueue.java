@@ -20,6 +20,7 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A queue which forwards all its method calls to another queue. Subclasses should override one or
@@ -44,7 +45,8 @@ import java.util.Queue;
  * @since 2.0
  */
 @GwtCompatible
-public abstract class ForwardingQueue<E> extends ForwardingCollection<E> implements Queue<E> {
+public abstract class ForwardingQueue<E extends @Nullable Object> extends ForwardingCollection<E>
+    implements Queue<E> {
 
   /** Constructor for use by subclasses. */
   protected ForwardingQueue() {}
@@ -54,28 +56,30 @@ public abstract class ForwardingQueue<E> extends ForwardingCollection<E> impleme
 
   @CanIgnoreReturnValue // TODO(cpovirk): Consider removing this?
   @Override
-  public boolean offer(E o) {
+  public boolean offer(@ParametricNullness E o) {
     return delegate().offer(o);
   }
 
   @CanIgnoreReturnValue // TODO(cpovirk): Consider removing this?
   @Override
-  public E poll() {
+  public @Nullable E poll() {
     return delegate().poll();
   }
 
   @CanIgnoreReturnValue
   @Override
+  @ParametricNullness
   public E remove() {
     return delegate().remove();
   }
 
   @Override
-  public E peek() {
+  public @Nullable E peek() {
     return delegate().peek();
   }
 
   @Override
+  @ParametricNullness
   public E element() {
     return delegate().element();
   }
@@ -86,7 +90,7 @@ public abstract class ForwardingQueue<E> extends ForwardingCollection<E> impleme
    *
    * @since 7.0
    */
-  protected boolean standardOffer(E e) {
+  protected boolean standardOffer(@ParametricNullness E e) {
     try {
       return add(e);
     } catch (IllegalStateException caught) {
@@ -100,7 +104,7 @@ public abstract class ForwardingQueue<E> extends ForwardingCollection<E> impleme
    *
    * @since 7.0
    */
-  protected E standardPeek() {
+  protected @Nullable E standardPeek() {
     try {
       return element();
     } catch (NoSuchElementException caught) {
@@ -114,7 +118,7 @@ public abstract class ForwardingQueue<E> extends ForwardingCollection<E> impleme
    *
    * @since 7.0
    */
-  protected E standardPoll() {
+  protected @Nullable E standardPoll() {
     try {
       return remove();
     } catch (NoSuchElementException caught) {

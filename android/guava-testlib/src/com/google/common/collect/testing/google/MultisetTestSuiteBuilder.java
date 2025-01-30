@@ -17,6 +17,8 @@
 package com.google.common.collect.testing.google;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.testing.Helpers.copyToList;
+import static java.util.Collections.emptySet;
 
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.collect.Multiset;
@@ -25,7 +27,6 @@ import com.google.common.collect.Multisets;
 import com.google.common.collect.testing.AbstractCollectionTestSuiteBuilder;
 import com.google.common.collect.testing.AbstractTester;
 import com.google.common.collect.testing.FeatureSpecificTestSuiteBuilder;
-import com.google.common.collect.testing.Helpers;
 import com.google.common.collect.testing.OneSizeTestContainerGenerator;
 import com.google.common.collect.testing.SampleElements;
 import com.google.common.collect.testing.SetTestSuiteBuilder;
@@ -36,7 +37,6 @@ import com.google.common.collect.testing.testers.CollectionSerializationEqualTes
 import com.google.common.testing.SerializableTester;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -64,13 +64,14 @@ public class MultisetTestSuiteBuilder<E>
 
     @Override
     public Set<Feature<? super Void>> getImpliedFeatures() {
-      return Collections.emptySet();
+      return emptySet();
     }
   }
 
+  @SuppressWarnings("rawtypes") // class literals
   @Override
   protected List<Class<? extends AbstractTester>> getTesters() {
-    List<Class<? extends AbstractTester>> testers = Helpers.copyToList(super.getTesters());
+    List<Class<? extends AbstractTester>> testers = copyToList(super.getTesters());
     testers.add(CollectionSerializationEqualTester.class);
     testers.add(MultisetAddTester.class);
     testers.add(MultisetContainsTester.class);
@@ -130,6 +131,8 @@ public class MultisetTestSuiteBuilder<E>
               .named(getName() + ".entrySet")
               .withFeatures(computeEntrySetFeatures(parentBuilder.getFeatures()))
               .suppressing(parentBuilder.getSuppressedTests())
+              .withSetUp(parentBuilder.getSetUp())
+              .withTearDown(parentBuilder.getTearDown())
               .createTestSuite());
     }
 
@@ -140,6 +143,8 @@ public class MultisetTestSuiteBuilder<E>
               .named(getName() + " reserialized")
               .withFeatures(computeReserializedMultisetFeatures(parentBuilder.getFeatures()))
               .suppressing(parentBuilder.getSuppressedTests())
+              .withSetUp(parentBuilder.getSetUp())
+              .withTearDown(parentBuilder.getTearDown())
               .createTestSuite());
     }
     return derivedSuites;
@@ -153,6 +158,8 @@ public class MultisetTestSuiteBuilder<E>
         .named(getName() + ".elementSet")
         .withFeatures(computeElementSetFeatures(parentBuilder.getFeatures()))
         .suppressing(parentBuilder.getSuppressedTests())
+        .withSetUp(parentBuilder.getSetUp())
+        .withTearDown(parentBuilder.getTearDown())
         .createTestSuite();
   }
 
@@ -226,7 +233,7 @@ public class MultisetTestSuiteBuilder<E>
     @SuppressWarnings("unchecked")
     @Override
     public Multiset.Entry<E>[] createArray(int length) {
-      return new Multiset.Entry[length];
+      return (Multiset.Entry<E>[]) new Multiset.Entry<?>[length];
     }
 
     @Override

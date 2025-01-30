@@ -34,7 +34,7 @@ import com.google.common.util.concurrent.FuturesGetChecked.GetCheckedTypeValidat
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
-import java.security.acl.NotOwnerException;
+import java.security.KeyException;
 import java.util.List;
 import java.util.TooManyListenersException;
 import java.util.concurrent.BrokenBarrierException;
@@ -45,14 +45,17 @@ import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
 import java.util.zip.DataFormatException;
 import javax.security.auth.RefreshFailedException;
+import org.jspecify.annotations.NullUnmarked;
 
 /** Microbenchmark for {@link Futures#getChecked}. */
+@NullUnmarked
 public class FuturesGetCheckedBenchmark {
   private enum Validator {
     NON_CACHING_WITH_CONSTRUCTOR_CHECK(nonCachingWithConstructorCheckValidator()),
     NON_CACHING_WITHOUT_CONSTRUCTOR_CHECK(nonCachingWithoutConstructorCheckValidator()),
     WEAK_SET(weakSetValidator()),
-    CLASS_VALUE(classValueValidator());
+    CLASS_VALUE(classValueValidator()),
+    ;
 
     final GetCheckedTypeValidator validator;
 
@@ -92,7 +95,7 @@ public class FuturesGetCheckedBenchmark {
           ExecutionException.class,
           GeneralSecurityException.class,
           InvalidPreferencesFormatException.class,
-          NotOwnerException.class,
+          KeyException.class,
           RefreshFailedException.class,
           TimeoutException.class,
           TooManyListenersException.class,
@@ -101,6 +104,7 @@ public class FuturesGetCheckedBenchmark {
   @Param Validator validator;
   @Param Result result;
   @Param ExceptionType exceptionType;
+
   /**
    * The number of other exception types in the cache of known-good exceptions and the number of
    * other {@code ClassValue} entries for the exception type to be tested. This lets us evaluate

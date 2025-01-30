@@ -17,6 +17,7 @@
 package com.google.common.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Function;
@@ -24,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.Immutable;
+import com.google.errorprone.annotations.InlineMe;
 
 /**
  * A {@link ValueGraph} whose elements and structural relationships will never change. Instances of
@@ -61,6 +63,9 @@ public final class ImmutableValueGraph<N, V> extends StandardValueGraph<N, V> {
    *
    * @deprecated no need to use this
    */
+  @InlineMe(
+      replacement = "checkNotNull(graph)",
+      staticImports = "com.google.common.base.Preconditions.checkNotNull")
   @Deprecated
   public static <N, V> ImmutableValueGraph<N, V> copyOf(ImmutableValueGraph<N, V> graph) {
     return checkNotNull(graph);
@@ -73,7 +78,7 @@ public final class ImmutableValueGraph<N, V> extends StandardValueGraph<N, V> {
 
   @Override
   public ImmutableGraph<N> asGraph() {
-    return new ImmutableGraph<N>(this); // safe because the view is effectively immutable
+    return new ImmutableGraph<>(this); // safe because the view is effectively immutable
   }
 
   private static <N, V> ImmutableMap<N, GraphConnections<N, V>> getNodeConnections(
@@ -85,18 +90,14 @@ public final class ImmutableValueGraph<N, V> extends StandardValueGraph<N, V> {
     for (N node : graph.nodes()) {
       nodeConnections.put(node, connectionsOf(graph, node));
     }
-    return nodeConnections.build();
+    return nodeConnections.buildOrThrow();
   }
 
-  private static <N, V> GraphConnections<N, V> connectionsOf(
-      final ValueGraph<N, V> graph, final N node) {
+  private static <N, V> GraphConnections<N, V> connectionsOf(ValueGraph<N, V> graph, N node) {
     Function<N, V> successorNodeToValueFn =
-        new Function<N, V>() {
-          @Override
-          public V apply(N successorNode) {
-            return graph.edgeValueOrDefault(node, successorNode, null);
-          }
-        };
+        (N successorNode) ->
+            // requireNonNull is safe because the endpoint pair comes from the graph.
+            requireNonNull(graph.edgeValueOrDefault(node, successorNode, null));
     return graph.isDirected()
         ? DirectedGraphConnections.ofImmutable(
             node, graph.incidentEdges(node), successorNodeToValueFn)

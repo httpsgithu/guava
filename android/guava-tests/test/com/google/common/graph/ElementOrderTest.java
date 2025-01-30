@@ -23,12 +23,14 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Ordering;
 import java.util.Comparator;
+import org.jspecify.annotations.NullUnmarked;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /** Tests for ordering the elements of graphs. */
 @RunWith(JUnit4.class)
+@NullUnmarked
 public final class ElementOrderTest {
   // Node order tests
 
@@ -150,7 +152,7 @@ public final class ElementOrderTest {
   // Combined node and edge order tests
 
   @Test
-  public void nodeOrderUnorderedandEdgesSorted() {
+  public void nodeOrderUnorderedAndEdgesSorted() {
     MutableNetwork<Integer, String> network =
         NetworkBuilder.directed()
             .nodeOrder(unordered())

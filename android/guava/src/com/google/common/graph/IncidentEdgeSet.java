@@ -18,7 +18,7 @@ package com.google.common.graph;
 
 import java.util.AbstractSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Abstract base class for an incident edges set that allows different implementations of {@link
@@ -34,7 +34,7 @@ abstract class IncidentEdgeSet<N> extends AbstractSet<EndpointPair<N>> {
   }
 
   @Override
-  public boolean remove(Object o) {
+  public boolean remove(@Nullable Object o) {
     throw new UnsupportedOperationException();
   }
 
@@ -50,7 +50,7 @@ abstract class IncidentEdgeSet<N> extends AbstractSet<EndpointPair<N>> {
   }
 
   @Override
-  public boolean contains(@NullableDecl Object obj) {
+  public boolean contains(@Nullable Object obj) {
     if (!(obj instanceof EndpointPair)) {
       return false;
     }
