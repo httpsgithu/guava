@@ -22,8 +22,8 @@ import com.google.common.primitives.Longs;
 import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLongArray;
-import javax.annotation.CheckForNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.concurrent.atomic.LongAdder;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Collections of strategies of generating the k * log(M) bits required for an element to be mapped
@@ -37,7 +37,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @author Dimitris Andreou
  * @author Kurt Alfred Kluever
  */
-@ElementTypesAreNonnullByDefault
 enum BloomFilterStrategies implements BloomFilter.Strategy {
   /**
    * See "Less Hashing, Same Performance: Building a Better Bloom Filter" by Adam Kirsch and Michael
@@ -94,7 +93,7 @@ enum BloomFilterStrategies implements BloomFilter.Strategy {
   },
   /**
    * This strategy uses all 128 bits of {@link Hashing#murmur3_128} when hashing. It looks different
-   * than the implementation in MURMUR128_MITZ_32 because we're avoiding the multiplication in the
+   * from the implementation in MURMUR128_MITZ_32 because we're avoiding the multiplication in the
    * loop and doing a (much simpler) += hash2. We're also changing the index to a positive number by
    * AND'ing with Long.MAX_VALUE instead of flipping the bits.
    */
@@ -162,7 +161,7 @@ enum BloomFilterStrategies implements BloomFilter.Strategy {
   static final class LockFreeBitArray {
     private static final int LONG_ADDRESSABLE_BITS = 6;
     final AtomicLongArray data;
-    private final LongAddable bitCount;
+    private final LongAdder bitCount;
 
     LockFreeBitArray(long bits) {
       checkArgument(bits > 0, "data length is zero!");
@@ -170,14 +169,14 @@ enum BloomFilterStrategies implements BloomFilter.Strategy {
       // thus double memory usage.
       this.data =
           new AtomicLongArray(Ints.checkedCast(LongMath.divide(bits, 64, RoundingMode.CEILING)));
-      this.bitCount = LongAddables.create();
+      this.bitCount = new LongAdder();
     }
 
     // Used by serialization
     LockFreeBitArray(long[] data) {
       checkArgument(data.length > 0, "data length is zero!");
       this.data = new AtomicLongArray(data);
-      this.bitCount = LongAddables.create();
+      this.bitCount = new LongAdder();
       long bitCount = 0;
       for (long value : data) {
         bitCount += Long.bitCount(value);
@@ -263,29 +262,40 @@ enum BloomFilterStrategies implements BloomFilter.Strategy {
           data.length(),
           other.data.length());
       for (int i = 0; i < data.length(); i++) {
-        long otherLong = other.data.get(i);
-
-        long ourLongOld;
-        long ourLongNew;
-        boolean changedAnyBits = true;
-        do {
-          ourLongOld = data.get(i);
-          ourLongNew = ourLongOld | otherLong;
-          if (ourLongOld == ourLongNew) {
-            changedAnyBits = false;
-            break;
-          }
-        } while (!data.compareAndSet(i, ourLongOld, ourLongNew));
-
-        if (changedAnyBits) {
-          int bitsAdded = Long.bitCount(ourLongNew) - Long.bitCount(ourLongOld);
-          bitCount.add(bitsAdded);
-        }
+        putData(i, other.data.get(i));
       }
     }
 
+    /**
+     * ORs the bits encoded in the {@code i}th {@code long} in the underlying {@link
+     * AtomicLongArray} with the given value.
+     */
+    void putData(int i, long longValue) {
+      long ourLongOld;
+      long ourLongNew;
+      boolean changedAnyBits = true;
+      do {
+        ourLongOld = data.get(i);
+        ourLongNew = ourLongOld | longValue;
+        if (ourLongOld == ourLongNew) {
+          changedAnyBits = false;
+          break;
+        }
+      } while (!data.compareAndSet(i, ourLongOld, ourLongNew));
+
+      if (changedAnyBits) {
+        int bitsAdded = Long.bitCount(ourLongNew) - Long.bitCount(ourLongOld);
+        bitCount.add(bitsAdded);
+      }
+    }
+
+    /** Returns the number of {@code long}s in the underlying {@link AtomicLongArray}. */
+    int dataLength() {
+      return data.length();
+    }
+
     @Override
-    public boolean equals(@CheckForNull Object o) {
+    public boolean equals(@Nullable Object o) {
       if (o instanceof LockFreeBitArray) {
         LockFreeBitArray lockFreeBitArray = (LockFreeBitArray) o;
         // TODO(lowasser): avoid allocation here

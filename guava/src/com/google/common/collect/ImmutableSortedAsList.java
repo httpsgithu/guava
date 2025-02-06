@@ -16,9 +16,10 @@ package com.google.common.collect;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import java.util.Comparator;
 import java.util.Spliterator;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * List returned by {@code ImmutableSortedSet.asList()} when the set isn't empty.
@@ -67,7 +68,7 @@ final class ImmutableSortedAsList<E> extends RegularImmutableAsList<E>
   }
 
   @Override
-  public boolean contains(Object target) {
+  public boolean contains(@Nullable Object target) {
     // Necessary for ISS's with comparators inconsistent with equals.
     return indexOf(target) >= 0;
   }
@@ -91,5 +92,14 @@ final class ImmutableSortedAsList<E> extends RegularImmutableAsList<E>
         ImmutableList.SPLITERATOR_CHARACTERISTICS | Spliterator.SORTED | Spliterator.DISTINCT,
         delegateList()::get,
         comparator());
+  }
+
+  // redeclare to help optimizers with b/310253115
+  @SuppressWarnings("RedundantOverride")
+  @Override
+  @J2ktIncompatible // serialization
+  @GwtIncompatible // serialization
+  Object writeReplace() {
+    return super.writeReplace();
   }
 }

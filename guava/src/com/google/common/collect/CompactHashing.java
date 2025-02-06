@@ -16,11 +16,13 @@
 
 package com.google.common.collect;
 
+import static java.lang.Math.max;
+
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.Objects;
 import com.google.common.primitives.Ints;
 import java.util.Arrays;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Helper classes and static methods for implementing compact hash-based collections.
@@ -67,7 +69,7 @@ final class CompactHashing {
    */
   static int tableSize(int expectedSize) {
     // We use entries next == 0 to indicate UNSET, so actual capacity is 1 less than requested.
-    return Math.max(MIN_HASH_TABLE_SIZE, Hashing.closedTableSize(expectedSize + 1, 1.0f));
+    return max(MIN_HASH_TABLE_SIZE, Hashing.closedTableSize(expectedSize + 1, 1.0));
   }
 
   /** Creates and returns a properly-sized array with the given number of buckets. */
@@ -96,6 +98,11 @@ final class CompactHashing {
     }
   }
 
+  /**
+   * Returns {@code table[index]}, where {@code table} is actually a {@code byte[]}, {@code
+   * short[]}, or {@code int[]}. When it is a {@code byte[]} or {@code short[]}, the returned value
+   * is unsigned, so the range of possible returned values is 0–255 or 0–65535, respectively.
+   */
   static int tableGet(Object table, int index) {
     if (table instanceof byte[]) {
       return ((byte[]) table)[index] & BYTE_MASK; // unsigned read
@@ -106,6 +113,13 @@ final class CompactHashing {
     }
   }
 
+  /**
+   * Sets {@code table[index]} to {@code entry}, where {@code table} is actually a {@code byte[]},
+   * {@code short[]}, or {@code int[]}. The value of {@code entry} should fit in the size of the
+   * assigned array element, when seen as an unsigned value. So if {@code table} is a {@code byte[]}
+   * then we should have {@code 0 ≤ entry ≤ 255}, and if {@code table} is a {@code short[]} then we
+   * should have {@code 0 ≤ entry ≤ 65535}. It is the caller's responsibility to ensure this.
+   */
   static void tableSet(Object table, int index, int entry) {
     if (table instanceof byte[]) {
       ((byte[]) table)[index] = (byte) entry; // unsigned write
@@ -148,8 +162,8 @@ final class CompactHashing {
       int mask,
       Object table,
       int[] entries,
-      Object[] keys,
-      Object @Nullable [] values) {
+      @Nullable Object[] keys,
+      @Nullable Object @Nullable [] values) {
     int hash = Hashing.smearedHash(key);
     int tableIndex = hash & mask;
     int next = tableGet(table, tableIndex);

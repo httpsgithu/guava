@@ -20,11 +20,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import java.util.Spliterator;
 import java.util.function.Consumer;
+import org.jspecify.annotations.Nullable;
 
 @GwtCompatible(emulated = true)
-abstract class IndexedImmutableSet<E> extends ImmutableSet<E> {
+abstract class IndexedImmutableSet<E> extends ImmutableSet.CachingAsList<E> {
   abstract E get(int index);
 
   @Override
@@ -48,7 +50,7 @@ abstract class IndexedImmutableSet<E> extends ImmutableSet<E> {
 
   @Override
   @GwtIncompatible
-  int copyIntoArray(Object[] dst, int offset) {
+  int copyIntoArray(@Nullable Object[] dst, int offset) {
     return asList().copyIntoArray(dst, offset);
   }
 
@@ -74,6 +76,24 @@ abstract class IndexedImmutableSet<E> extends ImmutableSet<E> {
       ImmutableCollection<E> delegateCollection() {
         return IndexedImmutableSet.this;
       }
+
+      // redeclare to help optimizers with b/310253115
+      @SuppressWarnings("RedundantOverride")
+      @Override
+      @J2ktIncompatible // serialization
+      @GwtIncompatible // serialization
+      Object writeReplace() {
+        return super.writeReplace();
+      }
     };
+  }
+
+  // redeclare to help optimizers with b/310253115
+  @SuppressWarnings("RedundantOverride")
+  @Override
+  @J2ktIncompatible // serialization
+  @GwtIncompatible // serialization
+  Object writeReplace() {
+    return super.writeReplace();
   }
 }

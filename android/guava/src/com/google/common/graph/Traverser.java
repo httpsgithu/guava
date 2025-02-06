@@ -18,6 +18,7 @@ package com.google.common.graph;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.Beta;
 import com.google.common.collect.AbstractIterator;
@@ -28,7 +29,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An object that can traverse the nodes that are reachable from a specified (set of) start node(s)
@@ -94,7 +95,7 @@ public abstract class Traverser<N> {
    *
    * @param graph {@link SuccessorsFunction} representing a general graph that may have cycles.
    */
-  public static <N> Traverser<N> forGraph(final SuccessorsFunction<N> graph) {
+  public static <N> Traverser<N> forGraph(SuccessorsFunction<N> graph) {
     return new Traverser<N>(graph) {
       @Override
       Traversal<N> newTraversal() {
@@ -112,8 +113,8 @@ public abstract class Traverser<N> {
    * structure being traversed is, in addition to being a tree/forest, also defined <a
    * href="https://github.com/google/guava/wiki/GraphsExplained#non-recursiveness">recursively</a>.
    * This is because the {@code forTree()}-based implementations don't keep track of visited nodes,
-   * and therefore don't need to call `equals()` or `hashCode()` on the node objects; this saves
-   * both time and space versus traversing the same graph using {@code forGraph()}.
+   * and therefore don't need to call {@code equals()} or {@code hashCode()} on the node objects;
+   * this saves both time and space versus traversing the same graph using {@code forGraph()}.
    *
    * <p>Providing a graph to be traversed for which there is more than one path from the start
    * node(s) to any node may lead to:
@@ -176,7 +177,7 @@ public abstract class Traverser<N> {
    * @param tree {@link SuccessorsFunction} representing a directed acyclic graph that has at most
    *     one path between any two nodes
    */
-  public static <N> Traverser<N> forTree(final SuccessorsFunction<N> tree) {
+  public static <N> Traverser<N> forTree(SuccessorsFunction<N> tree) {
     if (tree instanceof BaseGraph) {
       checkArgument(((BaseGraph<?>) tree).isDirected(), "Undirected graphs can never be trees.");
     }
@@ -237,7 +238,7 @@ public abstract class Traverser<N> {
    * @since 24.1
    */
   public final Iterable<N> breadthFirst(Iterable<? extends N> startNodes) {
-    final ImmutableSet<N> validated = validate(startNodes);
+    ImmutableSet<N> validated = validate(startNodes);
     return new Iterable<N>() {
       @Override
       public Iterator<N> iterator() {
@@ -292,7 +293,7 @@ public abstract class Traverser<N> {
    * @since 24.1
    */
   public final Iterable<N> depthFirstPreOrder(Iterable<? extends N> startNodes) {
-    final ImmutableSet<N> validated = validate(startNodes);
+    ImmutableSet<N> validated = validate(startNodes);
     return new Iterable<N>() {
       @Override
       public Iterator<N> iterator() {
@@ -347,7 +348,7 @@ public abstract class Traverser<N> {
    * @since 24.1
    */
   public final Iterable<N> depthFirstPostOrder(Iterable<? extends N> startNodes) {
-    final ImmutableSet<N> validated = validate(startNodes);
+    ImmutableSet<N> validated = validate(startNodes);
     return new Iterable<N>() {
       @Override
       public Iterator<N> iterator() {
@@ -380,13 +381,22 @@ public abstract class Traverser<N> {
     }
 
     static <N> Traversal<N> inGraph(SuccessorsFunction<N> graph) {
-      final Set<N> visited = new HashSet<>();
+      Set<N> visited = new HashSet<>();
       return new Traversal<N>(graph) {
         @Override
-        N visitNext(Deque<Iterator<? extends N>> horizon) {
+        @Nullable N visitNext(Deque<Iterator<? extends N>> horizon) {
           Iterator<? extends N> top = horizon.getFirst();
           while (top.hasNext()) {
-            N element = checkNotNull(top.next());
+            N element = top.next();
+            // requireNonNull is safe because horizon contains only graph nodes.
+            /*
+             * TODO(cpovirk): Replace these two statements with one (`N element =
+             * requireNonNull(top.next())`) once our checker supports it.
+             *
+             * (The problem is likely
+             * https://github.com/jspecify/jspecify-reference-checker/blob/61aafa4ae52594830cfc2d61c8b113009dbdb045/src/main/java/com/google/jspecify/nullness/NullSpecAnnotatedTypeFactory.java#L896)
+             */
+            requireNonNull(element);
             if (visited.add(element)) {
               return element;
             }
@@ -400,7 +410,7 @@ public abstract class Traverser<N> {
     static <N> Traversal<N> inTree(SuccessorsFunction<N> tree) {
       return new Traversal<N>(tree) {
         @Override
-        N visitNext(Deque<Iterator<? extends N>> horizon) {
+        @Nullable N visitNext(Deque<Iterator<? extends N>> horizon) {
           Iterator<? extends N> top = horizon.getFirst();
           if (top.hasNext()) {
             return checkNotNull(top.next());
@@ -425,12 +435,12 @@ public abstract class Traverser<N> {
      * determined by the {@code InsertionOrder} parameter: nieces are placed at the FRONT before
      * aunts for pre-order; while in BFS they are placed at the BACK after aunts.
      */
-    private Iterator<N> topDown(Iterator<? extends N> startNodes, final InsertionOrder order) {
-      final Deque<Iterator<? extends N>> horizon = new ArrayDeque<>();
+    private Iterator<N> topDown(Iterator<? extends N> startNodes, InsertionOrder order) {
+      Deque<Iterator<? extends N>> horizon = new ArrayDeque<>();
       horizon.add(startNodes);
       return new AbstractIterator<N>() {
         @Override
-        protected N computeNext() {
+        protected @Nullable N computeNext() {
           do {
             N next = visitNext(horizon);
             if (next != null) {
@@ -449,12 +459,12 @@ public abstract class Traverser<N> {
     }
 
     final Iterator<N> postOrder(Iterator<? extends N> startNodes) {
-      final Deque<N> ancestorStack = new ArrayDeque<>();
-      final Deque<Iterator<? extends N>> horizon = new ArrayDeque<>();
+      Deque<N> ancestorStack = new ArrayDeque<>();
+      Deque<Iterator<? extends N>> horizon = new ArrayDeque<>();
       horizon.add(startNodes);
       return new AbstractIterator<N>() {
         @Override
-        protected N computeNext() {
+        protected @Nullable N computeNext() {
           for (N next = visitNext(horizon); next != null; next = visitNext(horizon)) {
             Iterator<? extends N> successors = successorFunction.successors(next).iterator();
             if (!successors.hasNext()) {
@@ -463,7 +473,11 @@ public abstract class Traverser<N> {
             horizon.addFirst(successors);
             ancestorStack.push(next);
           }
-          return ancestorStack.isEmpty() ? endOfData() : ancestorStack.pop();
+          // TODO(b/192579700): Use a ternary once it no longer confuses our nullness checker.
+          if (!ancestorStack.isEmpty()) {
+            return ancestorStack.pop();
+          }
+          return endOfData();
         }
       };
     }
@@ -478,8 +492,7 @@ public abstract class Traverser<N> {
      * into {@code horizon} between calls to {@code visitNext()}. This causes them to receive
      * additional values interleaved with those shown above.)
      */
-    @NullableDecl
-    abstract N visitNext(Deque<Iterator<? extends N>> horizon);
+    abstract @Nullable N visitNext(Deque<Iterator<? extends N>> horizon);
   }
 
   /** Poor man's method reference for {@code Deque::addFirst} and {@code Deque::addLast}. */

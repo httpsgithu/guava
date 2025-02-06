@@ -24,7 +24,7 @@ import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Skeletal implementation of {@link NavigableMap}.
@@ -32,38 +32,34 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * @author Louis Wasserman
  */
 @GwtIncompatible
-abstract class AbstractNavigableMap<K, V> extends IteratorBasedAbstractMap<K, V>
-    implements NavigableMap<K, V> {
+abstract class AbstractNavigableMap<K extends @Nullable Object, V extends @Nullable Object>
+    extends IteratorBasedAbstractMap<K, V> implements NavigableMap<K, V> {
 
   @Override
-  @NullableDecl
-  public abstract V get(@NullableDecl Object key);
+  public abstract @Nullable V get(@Nullable Object key);
 
   @Override
-  @NullableDecl
-  public Entry<K, V> firstEntry() {
-    return Iterators.getNext(entryIterator(), null);
+  public @Nullable Entry<K, V> firstEntry() {
+    return Iterators.<@Nullable Entry<K, V>>getNext(entryIterator(), null);
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> lastEntry() {
-    return Iterators.getNext(descendingEntryIterator(), null);
+  public @Nullable Entry<K, V> lastEntry() {
+    return Iterators.<@Nullable Entry<K, V>>getNext(descendingEntryIterator(), null);
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> pollFirstEntry() {
+  public @Nullable Entry<K, V> pollFirstEntry() {
     return Iterators.pollNext(entryIterator());
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> pollLastEntry() {
+  public @Nullable Entry<K, V> pollLastEntry() {
     return Iterators.pollNext(descendingEntryIterator());
   }
 
   @Override
+  @ParametricNullness
   public K firstKey() {
     Entry<K, V> entry = firstEntry();
     if (entry == null) {
@@ -74,6 +70,7 @@ abstract class AbstractNavigableMap<K, V> extends IteratorBasedAbstractMap<K, V>
   }
 
   @Override
+  @ParametricNullness
   public K lastKey() {
     Entry<K, V> entry = lastEntry();
     if (entry == null) {
@@ -84,63 +81,59 @@ abstract class AbstractNavigableMap<K, V> extends IteratorBasedAbstractMap<K, V>
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> lowerEntry(K key) {
+  public @Nullable Entry<K, V> lowerEntry(@ParametricNullness K key) {
     return headMap(key, false).lastEntry();
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> floorEntry(K key) {
+  public @Nullable Entry<K, V> floorEntry(@ParametricNullness K key) {
     return headMap(key, true).lastEntry();
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> ceilingEntry(K key) {
+  public @Nullable Entry<K, V> ceilingEntry(@ParametricNullness K key) {
     return tailMap(key, true).firstEntry();
   }
 
   @Override
-  @NullableDecl
-  public Entry<K, V> higherEntry(K key) {
+  public @Nullable Entry<K, V> higherEntry(@ParametricNullness K key) {
     return tailMap(key, false).firstEntry();
   }
 
   @Override
-  public K lowerKey(K key) {
+  public @Nullable K lowerKey(@ParametricNullness K key) {
     return Maps.keyOrNull(lowerEntry(key));
   }
 
   @Override
-  public K floorKey(K key) {
+  public @Nullable K floorKey(@ParametricNullness K key) {
     return Maps.keyOrNull(floorEntry(key));
   }
 
   @Override
-  public K ceilingKey(K key) {
+  public @Nullable K ceilingKey(@ParametricNullness K key) {
     return Maps.keyOrNull(ceilingEntry(key));
   }
 
   @Override
-  public K higherKey(K key) {
+  public @Nullable K higherKey(@ParametricNullness K key) {
     return Maps.keyOrNull(higherEntry(key));
   }
 
   abstract Iterator<Entry<K, V>> descendingEntryIterator();
 
   @Override
-  public SortedMap<K, V> subMap(K fromKey, K toKey) {
+  public SortedMap<K, V> subMap(@ParametricNullness K fromKey, @ParametricNullness K toKey) {
     return subMap(fromKey, true, toKey, false);
   }
 
   @Override
-  public SortedMap<K, V> headMap(K toKey) {
+  public SortedMap<K, V> headMap(@ParametricNullness K toKey) {
     return headMap(toKey, false);
   }
 
   @Override
-  public SortedMap<K, V> tailMap(K fromKey) {
+  public SortedMap<K, V> tailMap(@ParametricNullness K fromKey) {
     return tailMap(fromKey, true);
   }
 

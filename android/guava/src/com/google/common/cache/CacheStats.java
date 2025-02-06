@@ -17,12 +17,13 @@ package com.google.common.cache;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.math.LongMath.saturatedAdd;
 import static com.google.common.math.LongMath.saturatedSubtract;
+import static java.lang.Math.max;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.concurrent.Callable;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Statistics about the performance of a {@link Cache}. Instances of this class are immutable.
@@ -150,8 +151,8 @@ public final class CacheStats {
 
   /**
    * Returns the total number of times that {@link Cache} lookup methods attempted to load new
-   * values. This includes both successful load operations, as well as those that threw exceptions.
-   * This is defined as {@code loadSuccessCount + loadExceptionCount}.
+   * values. This includes both successful load operations and those that threw exceptions. This is
+   * defined as {@code loadSuccessCount + loadExceptionCount}.
    *
    * <p><b>Note:</b> the values of the metrics are undefined in case of overflow (though it is
    * guaranteed not to throw an exception). If you require specific handling, we recommend
@@ -241,12 +242,12 @@ public final class CacheStats {
    */
   public CacheStats minus(CacheStats other) {
     return new CacheStats(
-        Math.max(0, saturatedSubtract(hitCount, other.hitCount)),
-        Math.max(0, saturatedSubtract(missCount, other.missCount)),
-        Math.max(0, saturatedSubtract(loadSuccessCount, other.loadSuccessCount)),
-        Math.max(0, saturatedSubtract(loadExceptionCount, other.loadExceptionCount)),
-        Math.max(0, saturatedSubtract(totalLoadTime, other.totalLoadTime)),
-        Math.max(0, saturatedSubtract(evictionCount, other.evictionCount)));
+        max(0, saturatedSubtract(hitCount, other.hitCount)),
+        max(0, saturatedSubtract(missCount, other.missCount)),
+        max(0, saturatedSubtract(loadSuccessCount, other.loadSuccessCount)),
+        max(0, saturatedSubtract(loadExceptionCount, other.loadExceptionCount)),
+        max(0, saturatedSubtract(totalLoadTime, other.totalLoadTime)),
+        max(0, saturatedSubtract(evictionCount, other.evictionCount)));
   }
 
   /**
@@ -276,7 +277,7 @@ public final class CacheStats {
   }
 
   @Override
-  public boolean equals(@NullableDecl Object object) {
+  public boolean equals(@Nullable Object object) {
     if (object instanceof CacheStats) {
       CacheStats other = (CacheStats) object;
       return hitCount == other.hitCount

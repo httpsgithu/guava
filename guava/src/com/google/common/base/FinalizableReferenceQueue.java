@@ -15,6 +15,7 @@
 package com.google.common.base;
 
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
@@ -27,11 +28,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A reference queue with an associated background thread that dequeues references and invokes
- * {@link FinalizableReference#finalizeReferent()} on them.
+ * {@link FinalizableReference#finalizeReferent()} on them. Java 9+ users should prefer {@link
+ * java.lang.ref.Cleaner Cleaner}; see example <a href="#cleaner">below</a>.
  *
  * <p>Keep a strong reference to this object until all of the associated referents have been
  * finalized. If this object is garbage collected earlier, the backing thread will not invoke {@code
@@ -61,8 +63,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  *   public static MyServer create(...) {
  *     MyServer myServer = new MyServer(...);
- *     final ServerSocket serverSocket = myServer.serverSocket;
+ *     ServerSocket serverSocket = myServer.serverSocket;
  *     Reference<?> reference = new FinalizablePhantomReference<MyServer>(myServer, frq) {
+ *       @Override
  *       public void finalizeReferent() {
  *         references.remove(this):
  *         if (!serverSocket.isClosed()) {
@@ -79,15 +82,61 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *     return myServer;
  *   }
  *
- *   public void close() {
+ *   @Override
+ *   public void close() throws IOException {
  *     serverSocket.close();
  *   }
  * }
  * }</pre>
  *
+ * <p id="cleaner">Here is how you might achieve the same thing using {@link java.lang.ref.Cleaner
+ * Cleaner}, if you are using a Java version where that is available:
+ *
+ * <pre>{@code
+ * public class MyServer implements Closeable {
+ *   private static final Cleaner cleaner = Cleaner.create();
+ *   // You might also share this between several objects.
+ *
+ *   private final ServerSocket serverSocket;
+ *   private final Cleaner.Cleanable cleanable;
+ *
+ *   public MyServer(...) {
+ *     ...
+ *     this.serverSocket = new ServerSocket(...);
+ *     this.cleanable = cleaner.register(this, closeServerSocketRunnable(serverSocket));
+ *     ...
+ *   }
+ *
+ *   private static Runnable closeServerSocketRunnable(ServerSocket serverSocket) {
+ *     return () -> {
+ *       if (!serverSocket.isClosed()) {
+ *         ...log a message about how nobody called close()...
+ *         try {
+ *           serverSocket.close();
+ *         } catch (IOException e) {
+ *           ...
+ *         }
+ *       }
+ *     };
+ *   }
+ *
+ *   @Override
+ *   public void close() throws IOException {
+ *     serverSocket.close();
+ *     cleanable.clean();
+ *   }
+ * }
+ * }</pre>
+ *
+ * <p>Some care is needed when using {@code Cleaner} to ensure that the callback passed to {@code
+ * register} does not have a reference to the object (in this case, {@code MyServer}) that may be
+ * garbage-collected. That's why we are careful to make a {@code Runnable} that does not have a
+ * reference to any {@code MyServer} instance.
+ *
  * @author Bob Lee
  * @since 2.0
  */
+@J2ktIncompatible
 @GwtIncompatible
 public class FinalizableReferenceQueue implements Closeable {
   /*
@@ -155,7 +204,7 @@ public class FinalizableReferenceQueue implements Closeable {
   public FinalizableReferenceQueue() {
     // We could start the finalizer lazily, but I'd rather it blow up early.
     queue = new ReferenceQueue<>();
-    frqRef = new PhantomReference<Object>(this, queue);
+    frqRef = new PhantomReference<>(this, queue);
     boolean threadStarted = false;
     try {
       startFinalizer.invoke(null, FinalizableReference.class, queue, frqRef);
@@ -228,8 +277,7 @@ public class FinalizableReferenceQueue implements Closeable {
      *
      * @throws SecurityException if we don't have the appropriate privileges
      */
-    @Nullable
-    Class<?> loadFinalizer();
+    @Nullable Class<?> loadFinalizer();
   }
 
   /**
@@ -280,17 +328,16 @@ public class FinalizableReferenceQueue implements Closeable {
 
     @Override
     public @Nullable Class<?> loadFinalizer() {
-      try {
-        /*
-         * We use URLClassLoader because it's the only concrete class loader implementation in the
-         * JDK. If we used our own ClassLoader subclass, Finalizer would indirectly reference this
-         * class loader:
-         *
-         * Finalizer.class -> CustomClassLoader -> CustomClassLoader.class -> This class loader
-         *
-         * System class loader will (and must) be the parent.
-         */
-        ClassLoader finalizerLoader = newLoader(getBaseUrl());
+      /*
+       * We use URLClassLoader because it's the only concrete class loader implementation in the
+       * JDK. If we used our own ClassLoader subclass, Finalizer would indirectly reference this
+       * class loader:
+       *
+       * Finalizer.class -> CustomClassLoader -> CustomClassLoader.class -> This class loader
+       *
+       * System class loader will (and must) be the parent.
+       */
+      try (URLClassLoader finalizerLoader = newLoader(getBaseUrl())) {
         return finalizerLoader.loadClass(FINALIZER_CLASS_NAME);
       } catch (Exception e) {
         logger.log(Level.WARNING, LOADING_ERROR, e);

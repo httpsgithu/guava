@@ -22,12 +22,12 @@ import static com.google.common.graph.GraphConstants.DEFAULT_EDGE_COUNT;
 import static com.google.common.graph.GraphConstants.DEFAULT_NODE_COUNT;
 import static com.google.common.graph.GraphConstants.EDGE_NOT_IN_GRAPH;
 import static com.google.common.graph.GraphConstants.NODE_NOT_IN_GRAPH;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
 /**
  * Standard implementation of {@link Network} that supports the options supplied by {@link
@@ -129,19 +129,20 @@ class StandardNetwork<N, E> extends AbstractNetwork<N, E> {
 
   @Override
   public Set<E> incidentEdges(N node) {
-    return checkedConnections(node).incidentEdges();
+    return nodeInvalidatableSet(checkedConnections(node).incidentEdges(), node);
   }
 
   @Override
   public EndpointPair<N> incidentNodes(E edge) {
     N nodeU = checkedReferenceNode(edge);
-    N nodeV = nodeConnections.get(nodeU).adjacentNode(edge);
+    // requireNonNull is safe because checkedReferenceNode made sure the edge is in the network.
+    N nodeV = requireNonNull(nodeConnections.get(nodeU)).adjacentNode(edge);
     return EndpointPair.of(this, nodeU, nodeV);
   }
 
   @Override
   public Set<N> adjacentNodes(N node) {
-    return checkedConnections(node).adjacentNodes();
+    return nodeInvalidatableSet(checkedConnections(node).adjacentNodes(), node);
   }
 
   @Override
@@ -151,27 +152,27 @@ class StandardNetwork<N, E> extends AbstractNetwork<N, E> {
       return ImmutableSet.of();
     }
     checkArgument(containsNode(nodeV), NODE_NOT_IN_GRAPH, nodeV);
-    return connectionsU.edgesConnecting(nodeV);
+    return nodePairInvalidatableSet(connectionsU.edgesConnecting(nodeV), nodeU, nodeV);
   }
 
   @Override
   public Set<E> inEdges(N node) {
-    return checkedConnections(node).inEdges();
+    return nodeInvalidatableSet(checkedConnections(node).inEdges(), node);
   }
 
   @Override
   public Set<E> outEdges(N node) {
-    return checkedConnections(node).outEdges();
+    return nodeInvalidatableSet(checkedConnections(node).outEdges(), node);
   }
 
   @Override
   public Set<N> predecessors(N node) {
-    return checkedConnections(node).predecessors();
+    return nodeInvalidatableSet(checkedConnections(node).predecessors(), node);
   }
 
   @Override
   public Set<N> successors(N node) {
-    return checkedConnections(node).successors();
+    return nodeInvalidatableSet(checkedConnections(node).successors(), node);
   }
 
   final NetworkConnections<N, E> checkedConnections(N node) {
@@ -192,11 +193,11 @@ class StandardNetwork<N, E> extends AbstractNetwork<N, E> {
     return referenceNode;
   }
 
-  final boolean containsNode(@NullableDecl N node) {
+  final boolean containsNode(N node) {
     return nodeConnections.containsKey(node);
   }
 
-  final boolean containsEdge(@NullableDecl E edge) {
+  final boolean containsEdge(E edge) {
     return edgeToReferenceNode.containsKey(edge);
   }
 }

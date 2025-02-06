@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Tests our AtomicHelper fallback strategy in AggregateFutureState.
@@ -40,11 +41,12 @@ import junit.framework.TestSuite;
  * </ul>
  *
  * To force selection of our fallback strategies we load {@link AggregateFutureState} (and all of
- * {@code com.google.common.util.concurrent} in degenerate class loaders which make certain platform
- * classes unavailable. Then we construct a test suite so we can run the normal FuturesTest test
- * methods in these degenerate classloaders.
+ * {@code com.google.common.util.concurrent}) in degenerate class loaders which make certain
+ * platform classes unavailable. Then we construct a test suite so we can run the normal FuturesTest
+ * test methods in these degenerate classloaders.
  */
 
+@NullUnmarked
 public class AggregateFutureStateFallbackAtomicHelperTest extends TestCase {
 
   /**
@@ -66,7 +68,13 @@ public class AggregateFutureStateFallbackAtomicHelperTest extends TestCase {
     // corresponding method on FuturesTest in the correct classloader.
     TestSuite suite = new TestSuite(AggregateFutureStateFallbackAtomicHelperTest.class.getName());
     for (Method method : FuturesTest.class.getDeclaredMethods()) {
-      if (Modifier.isPublic(method.getModifiers()) && method.getName().startsWith("test")) {
+      if (Modifier.isPublic(method.getModifiers())
+          && method.getName().startsWith("test")
+          /*
+           * When we block access to AtomicReferenceFieldUpdater, we can't even reflect on
+           * AbstractFuture, since it declares methods that use that type in their signatures.
+           */
+          && !method.getName().equals("testFutures_nullChecks")) {
         suite.addTest(
             TestSuite.createTest(
                 AggregateFutureStateFallbackAtomicHelperTest.class, method.getName()));

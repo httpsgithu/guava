@@ -22,10 +22,10 @@ import static com.google.common.base.Strings.lenientFormat;
 import static java.lang.Float.NEGATIVE_INFINITY;
 import static java.lang.Float.POSITIVE_INFINITY;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
 import com.google.common.base.Converter;
+import com.google.errorprone.annotations.InlineMe;
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -34,7 +34,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
-import javax.annotation.CheckForNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Static utility methods pertaining to {@code float} primitives, that are not already found in
@@ -47,14 +47,13 @@ import javax.annotation.CheckForNull;
  * @since 1.0
  */
 @GwtCompatible(emulated = true)
-@ElementTypesAreNonnullByDefault
 public final class Floats extends FloatsMethodsForWeb {
   private Floats() {}
 
   /**
    * The number of bytes required to represent a primitive {@code float} value.
    *
-   * <p><b>Java 8 users:</b> use {@link Float#BYTES} instead.
+   * <p><b>Java 8+ users:</b> use {@link Float#BYTES} instead.
    *
    * @since 10.0
    */
@@ -64,7 +63,7 @@ public final class Floats extends FloatsMethodsForWeb {
    * Returns a hash code for {@code value}; equal to the result of invoking {@code ((Float)
    * value).hashCode()}.
    *
-   * <p><b>Java 8 users:</b> use {@link Float#hashCode(float)} instead.
+   * <p><b>Java 8+ users:</b> use {@link Float#hashCode(float)} instead.
    *
    * @param value a primitive {@code float} value
    * @return a hash code for the value
@@ -87,6 +86,7 @@ public final class Floats extends FloatsMethodsForWeb {
    * @param b the second {@code float} to compare
    * @return the result of invoking {@link Float#compare(float, float)}
    */
+  @InlineMe(replacement = "Float.compare(a, b)")
   public static int compare(float a, float b) {
     return Float.compare(a, b);
   }
@@ -95,7 +95,7 @@ public final class Floats extends FloatsMethodsForWeb {
    * Returns {@code true} if {@code value} represents a real number. This is equivalent to, but not
    * necessarily implemented as, {@code !(Float.isInfinite(value) || Float.isNaN(value))}.
    *
-   * <p><b>Java 8 users:</b> use {@link Float#isFinite(float)} instead.
+   * <p><b>Java 8+ users:</b> use {@link Float#isFinite(float)} instead.
    *
    * @since 10.0
    */
@@ -244,13 +244,14 @@ public final class Floats extends FloatsMethodsForWeb {
    * unchanged. If {@code value} is less than {@code min}, {@code min} is returned, and if {@code
    * value} is greater than {@code max}, {@code max} is returned.
    *
+   * <p><b>Java 21+ users:</b> Use {@code Math.clamp} instead.
+   *
    * @param value the {@code float} value to constrain
    * @param min the lower bound (inclusive) of the range to constrain {@code value} to
    * @param max the upper bound (inclusive) of the range to constrain {@code value} to
    * @throws IllegalArgumentException if {@code min > max}
    * @since 21.0
    */
-  @Beta
   public static float constrainToRange(float value, float min, float max) {
     // avoid auto-boxing by not using Preconditions.checkArgument(); see Guava issue 3984
     // Reject NaN by testing for the good case (min <= max) instead of the bad (min > max).
@@ -268,13 +269,15 @@ public final class Floats extends FloatsMethodsForWeb {
    *
    * @param arrays zero or more {@code float} arrays
    * @return a single array containing all the values from the source arrays, in order
+   * @throws IllegalArgumentException if the total number of elements in {@code arrays} does not fit
+   *     in an {@code int}
    */
   public static float[] concat(float[]... arrays) {
-    int length = 0;
+    long length = 0;
     for (float[] array : arrays) {
       length += array.length;
     }
-    float[] result = new float[length];
+    float[] result = new float[checkNoOverflow(length)];
     int pos = 0;
     for (float[] array : arrays) {
       System.arraycopy(array, 0, result, pos, array.length);
@@ -283,9 +286,17 @@ public final class Floats extends FloatsMethodsForWeb {
     return result;
   }
 
+  private static int checkNoOverflow(long result) {
+    checkArgument(
+        result == (int) result,
+        "the total number of elements (%s) in the arrays must fit in an int",
+        result);
+    return (int) result;
+  }
+
   private static final class FloatConverter extends Converter<String, Float>
       implements Serializable {
-    static final FloatConverter INSTANCE = new FloatConverter();
+    static final Converter<String, Float> INSTANCE = new FloatConverter();
 
     @Override
     protected Float doForward(String value) {
@@ -315,7 +326,6 @@ public final class Floats extends FloatsMethodsForWeb {
    *
    * @since 16.0
    */
-  @Beta
   public static Converter<String, Float> stringConverter() {
     return FloatConverter.INSTANCE;
   }
@@ -465,6 +475,56 @@ public final class Floats extends FloatsMethodsForWeb {
   }
 
   /**
+   * Performs a right rotation of {@code array} of "distance" places, so that the first element is
+   * moved to index "distance", and the element at index {@code i} ends up at index {@code (distance
+   * + i) mod array.length}. This is equivalent to {@code Collections.rotate(Floats.asList(array),
+   * distance)}, but is considerably faster and avoids allocation and garbage collection.
+   *
+   * <p>The provided "distance" may be negative, which will rotate left.
+   *
+   * @since 32.0.0
+   */
+  public static void rotate(float[] array, int distance) {
+    rotate(array, distance, 0, array.length);
+  }
+
+  /**
+   * Performs a right rotation of {@code array} between {@code fromIndex} inclusive and {@code
+   * toIndex} exclusive. This is equivalent to {@code
+   * Collections.rotate(Floats.asList(array).subList(fromIndex, toIndex), distance)}, but is
+   * considerably faster and avoids allocations and garbage collection.
+   *
+   * <p>The provided "distance" may be negative, which will rotate left.
+   *
+   * @throws IndexOutOfBoundsException if {@code fromIndex < 0}, {@code toIndex > array.length}, or
+   *     {@code toIndex > fromIndex}
+   * @since 32.0.0
+   */
+  public static void rotate(float[] array, int distance, int fromIndex, int toIndex) {
+    // See Ints.rotate for more details about possible algorithms here.
+    checkNotNull(array);
+    checkPositionIndexes(fromIndex, toIndex, array.length);
+    if (array.length <= 1) {
+      return;
+    }
+
+    int length = toIndex - fromIndex;
+    // Obtain m = (-distance mod length), a non-negative value less than "length". This is how many
+    // places left to rotate.
+    int m = -distance % length;
+    m = (m < 0) ? m + length : m;
+    // The current index of what will become the first element of the rotated section.
+    int newFirstIndex = m + fromIndex;
+    if (newFirstIndex == fromIndex) {
+      return;
+    }
+
+    reverse(array, fromIndex, newFirstIndex);
+    reverse(array, newFirstIndex, toIndex);
+    reverse(array, fromIndex, toIndex);
+  }
+
+  /**
    * Returns an array containing each value of {@code collection}, converted to a {@code float}
    * value in the manner of {@link Number#floatValue}.
    *
@@ -503,6 +563,8 @@ public final class Floats extends FloatsMethodsForWeb {
    *
    * <p>The returned list may have unexpected behavior if it contains {@code NaN}, or if {@code NaN}
    * is used as a parameter to any of its methods.
+   *
+   * <p>The returned list is serializable.
    *
    * @param backingArray the array to back the list
    * @return a list view of the array
@@ -548,13 +610,13 @@ public final class Floats extends FloatsMethodsForWeb {
     }
 
     @Override
-    public boolean contains(@CheckForNull Object target) {
+    public boolean contains(@Nullable Object target) {
       // Overridden to prevent a ton of boxing
       return (target instanceof Float) && Floats.indexOf(array, (Float) target, start, end) != -1;
     }
 
     @Override
-    public int indexOf(@CheckForNull Object target) {
+    public int indexOf(@Nullable Object target) {
       // Overridden to prevent a ton of boxing
       if (target instanceof Float) {
         int i = Floats.indexOf(array, (Float) target, start, end);
@@ -566,7 +628,7 @@ public final class Floats extends FloatsMethodsForWeb {
     }
 
     @Override
-    public int lastIndexOf(@CheckForNull Object target) {
+    public int lastIndexOf(@Nullable Object target) {
       // Overridden to prevent a ton of boxing
       if (target instanceof Float) {
         int i = Floats.lastIndexOf(array, (Float) target, start, end);
@@ -597,7 +659,7 @@ public final class Floats extends FloatsMethodsForWeb {
     }
 
     @Override
-    public boolean equals(@CheckForNull Object object) {
+    public boolean equals(@Nullable Object object) {
       if (object == this) {
         return true;
       }
@@ -660,10 +722,8 @@ public final class Floats extends FloatsMethodsForWeb {
    * @throws NullPointerException if {@code string} is {@code null}
    * @since 14.0
    */
-  @Beta
   @GwtIncompatible // regular expressions
-  @CheckForNull
-  public static Float tryParse(String string) {
+  public static @Nullable Float tryParse(String string) {
     if (Doubles.FLOATING_POINT_PATTERN.matcher(string).matches()) {
       // TODO(lowasser): could be potentially optimized, but only with
       // extensive testing

@@ -17,6 +17,7 @@
 package com.google.common.reflect;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Unit test for {@link TypeToken} and {@link TypeResolver}.
@@ -36,6 +38,7 @@ import junit.framework.TestCase;
  * @author Ben Yu
  */
 @AndroidIncompatible // lots of failures, possibly some related to bad equals() implementations?
+@NullUnmarked
 public class TypeTokenResolutionTest extends TestCase {
 
   private static class Foo<A, B> {
@@ -178,10 +181,12 @@ public class TypeTokenResolutionTest extends TestCase {
     assertEquals(String.class, new Owner.Nested<String>() {}.getTypeArgument());
   }
 
+  @SuppressWarnings("RestrictedApiChecker") // crashes under JDK8, which EP no longer supports
   public void testResolveInnerClass() {
     assertEquals(String.class, new Owner<Integer>().new Inner<String>() {}.getTypeArgument());
   }
 
+  @SuppressWarnings("RestrictedApiChecker") // crashes under JDK8, which EP no longer supports
   public void testResolveOwnerClass() {
     assertEquals(Integer.class, new Owner<Integer>().new Inner<String>() {}.getOwnerType());
   }
@@ -246,14 +251,10 @@ public class TypeTokenResolutionTest extends TestCase {
         TypeToken.of(StringIterable.class)
             .resolveType(Iterable.class.getTypeParameters()[0])
             .getType());
-    try {
-      TypeToken.of(this.getClass()).resolveType(null);
-      fail();
-    } catch (NullPointerException expected) {
-    }
+    assertThrows(NullPointerException.class, () -> TypeToken.of(this.getClass()).resolveType(null));
   }
 
-  public void testConextIsParameterizedType() throws Exception {
+  public void testContextIsParameterizedType() throws Exception {
     class Context {
       @SuppressWarnings("unused") // used by reflection
       Map<String, Integer> returningMap() {

@@ -15,7 +15,8 @@
 package com.google.common.util.concurrent;
 
 import com.google.common.annotations.GwtIncompatible;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.annotations.J2ktIncompatible;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Unchecked version of {@link java.util.concurrent.TimeoutException}.
@@ -23,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @author Kevin Bourrillion
  * @since 1.0
  */
+@J2ktIncompatible
 @GwtIncompatible
 public class UncheckedTimeoutException extends RuntimeException {
   public UncheckedTimeoutException() {}

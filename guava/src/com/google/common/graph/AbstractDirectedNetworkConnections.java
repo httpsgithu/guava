@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.graph.Graphs.checkNonNegative;
 import static com.google.common.graph.Graphs.checkPositive;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -30,7 +31,7 @@ import java.util.AbstractSet;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A base implementation of {@link NetworkConnections} for directed networks.
@@ -98,7 +99,8 @@ abstract class AbstractDirectedNetworkConnections<N, E> implements NetworkConnec
   public N adjacentNode(E edge) {
     // Since the reference node is defined to be 'source' for directed graphs,
     // we can assume this edge lives in the set of outgoing edges.
-    return checkNotNull(outEdgeMap.get(edge));
+    // (We're relying on callers to call this method only with an edge that's in the graph.)
+    return requireNonNull(outEdgeMap.get(edge));
   }
 
   @Override
@@ -107,13 +109,15 @@ abstract class AbstractDirectedNetworkConnections<N, E> implements NetworkConnec
       checkNonNegative(--selfLoopCount);
     }
     N previousNode = inEdgeMap.remove(edge);
-    return checkNotNull(previousNode);
+    // We're relying on callers to call this method only with an edge that's in the graph.
+    return requireNonNull(previousNode);
   }
 
   @Override
   public N removeOutEdge(E edge) {
     N previousNode = outEdgeMap.remove(edge);
-    return checkNotNull(previousNode);
+    // We're relying on callers to call this method only with an edge that's in the graph.
+    return requireNonNull(previousNode);
   }
 
   @Override

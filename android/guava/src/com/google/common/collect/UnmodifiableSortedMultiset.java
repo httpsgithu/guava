@@ -16,11 +16,14 @@
 
 package com.google.common.collect;
 
+import static com.google.common.collect.Sets.unmodifiableNavigableSet;
+
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.collect.Multisets.UnmodifiableMultiset;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Comparator;
 import java.util.NavigableSet;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Implementation of {@link Multisets#unmodifiableSortedMultiset(SortedMultiset)}, split out into
@@ -30,7 +33,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * @author Louis Wasserman
  */
 @GwtCompatible(emulated = true)
-final class UnmodifiableSortedMultiset<E> extends UnmodifiableMultiset<E>
+final class UnmodifiableSortedMultiset<E extends @Nullable Object> extends UnmodifiableMultiset<E>
     implements SortedMultiset<E> {
   UnmodifiableSortedMultiset(SortedMultiset<E> delegate) {
     super(delegate);
@@ -48,7 +51,7 @@ final class UnmodifiableSortedMultiset<E> extends UnmodifiableMultiset<E>
 
   @Override
   NavigableSet<E> createElementSet() {
-    return Sets.unmodifiableNavigableSet(delegate().elementSet());
+    return unmodifiableNavigableSet(delegate().elementSet());
   }
 
   @Override
@@ -56,13 +59,13 @@ final class UnmodifiableSortedMultiset<E> extends UnmodifiableMultiset<E>
     return (NavigableSet<E>) super.elementSet();
   }
 
-  @NullableDecl private transient UnmodifiableSortedMultiset<E> descendingMultiset;
+  @LazyInit private transient @Nullable UnmodifiableSortedMultiset<E> descendingMultiset;
 
   @Override
   public SortedMultiset<E> descendingMultiset() {
     UnmodifiableSortedMultiset<E> result = descendingMultiset;
     if (result == null) {
-      result = new UnmodifiableSortedMultiset<E>(delegate().descendingMultiset());
+      result = new UnmodifiableSortedMultiset<>(delegate().descendingMultiset());
       result.descendingMultiset = this;
       return descendingMultiset = result;
     }
@@ -70,39 +73,42 @@ final class UnmodifiableSortedMultiset<E> extends UnmodifiableMultiset<E>
   }
 
   @Override
-  public Entry<E> firstEntry() {
+  public @Nullable Entry<E> firstEntry() {
     return delegate().firstEntry();
   }
 
   @Override
-  public Entry<E> lastEntry() {
+  public @Nullable Entry<E> lastEntry() {
     return delegate().lastEntry();
   }
 
   @Override
-  public Entry<E> pollFirstEntry() {
+  public @Nullable Entry<E> pollFirstEntry() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Entry<E> pollLastEntry() {
+  public @Nullable Entry<E> pollLastEntry() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public SortedMultiset<E> headMultiset(E upperBound, BoundType boundType) {
+  public SortedMultiset<E> headMultiset(@ParametricNullness E upperBound, BoundType boundType) {
     return Multisets.unmodifiableSortedMultiset(delegate().headMultiset(upperBound, boundType));
   }
 
   @Override
   public SortedMultiset<E> subMultiset(
-      E lowerBound, BoundType lowerBoundType, E upperBound, BoundType upperBoundType) {
+      @ParametricNullness E lowerBound,
+      BoundType lowerBoundType,
+      @ParametricNullness E upperBound,
+      BoundType upperBoundType) {
     return Multisets.unmodifiableSortedMultiset(
         delegate().subMultiset(lowerBound, lowerBoundType, upperBound, upperBoundType));
   }
 
   @Override
-  public SortedMultiset<E> tailMultiset(E lowerBound, BoundType boundType) {
+  public SortedMultiset<E> tailMultiset(@ParametricNullness E lowerBound, BoundType boundType) {
     return Multisets.unmodifiableSortedMultiset(delegate().tailMultiset(lowerBound, boundType));
   }
 

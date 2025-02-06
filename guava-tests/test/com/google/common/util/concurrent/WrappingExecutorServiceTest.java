@@ -19,6 +19,8 @@ package com.google.common.util.concurrent;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static com.google.common.util.concurrent.Runnables.doNothing;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -34,19 +36,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Test for {@link WrappingExecutorService}
  *
  * @author Chris Nokleberg
  */
+@NullUnmarked
 public class WrappingExecutorServiceTest extends TestCase {
   private static final String RESULT_VALUE = "ran";
+
   // Uninteresting delegations
   public void testDelegations() throws InterruptedException {
     MockExecutor mock = new MockExecutor();
     TestExecutor testExecutor = new TestExecutor(mock);
-    assertFalse(testExecutor.awaitTermination(10, TimeUnit.MILLISECONDS));
+    assertFalse(testExecutor.awaitTermination(10, MILLISECONDS));
     mock.assertLastMethodCalled("awaitTermination");
     assertFalse(testExecutor.isTerminated());
     mock.assertLastMethodCalled("isTerminated");
@@ -102,7 +107,7 @@ public class WrappingExecutorServiceTest extends TestCase {
     }
     {
       MockExecutor mock = new MockExecutor();
-      TimeUnit unit = TimeUnit.SECONDS;
+      TimeUnit unit = SECONDS;
       long timeout = 5;
       TestExecutor testExecutor = new TestExecutor(mock);
       List<Future<String>> futures = testExecutor.invokeAll(tasks, timeout, unit);
@@ -122,7 +127,7 @@ public class WrappingExecutorServiceTest extends TestCase {
     }
     {
       MockExecutor mock = new MockExecutor();
-      TimeUnit unit = TimeUnit.SECONDS;
+      TimeUnit unit = SECONDS;
       long timeout = 5;
       TestExecutor testExecutor = new TestExecutor(mock);
       String s = testExecutor.invokeAny(tasks, timeout, unit);
@@ -188,7 +193,7 @@ public class WrappingExecutorServiceTest extends TestCase {
     }
   }
 
-  // TODO: If this test can ever depend on EasyMock or the like, use it instead.
+  // TODO: If this test can ever depend on Mockito or the like, use it instead.
   private static final class MockExecutor implements ExecutorService {
     private String lastMethodCalled = "";
     private long lastTimeoutInMillis = -1;

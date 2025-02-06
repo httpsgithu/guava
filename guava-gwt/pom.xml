@@ -17,8 +17,8 @@
     This project includes GWT-friendly sources.
   </description>
   <properties>
-    <gwt.version>2.9.0</gwt.version>
-    <gwt.plugin.version>2.8.2</gwt.plugin.version>
+    <gwt.version>2.12.1</gwt.version>
+    <gwt.plugin.version>2.10.0</gwt.plugin.version>
     <gwt.logLevel>WARN</gwt.logLevel>
   </properties>
   <repositories>
@@ -45,17 +45,22 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>failureaccess</artifactId>
-      <version>1.0.1</version>
+      <version>1.0.2</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- We redeclare the j2objc-annotations dependency from `guava`: Our Gradle
+         Module Metadata hides the dependency declared in `guava` from runtime
+         configurations downstream, and GWT uses the runtime configuration for
+         its builds. Thus, GWT doesn't get j2objc-annotations transitively, in
+         contrast to the other deps of `guava`, which it does get transitively.
+         (Arguably we should redeclare *all* the `guava` deps here.) -->
     <dependency>
-      <groupId>com.google.elemental2</groupId>
-      <artifactId>elemental2-promise</artifactId>
-      <version>1.1.0</version>
+      <groupId>com.google.j2objc</groupId>
+      <artifactId>j2objc-annotations</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -78,13 +83,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.gwt</groupId>
+      <groupId>org.gwtproject</groupId>
       <artifactId>gwt-dev</artifactId>
       <version>${gwt.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.gwt</groupId>
+      <groupId>org.gwtproject</groupId>
       <artifactId>gwt-user</artifactId>
       <version>${gwt.version}</version>
       <scope>test</scope>
@@ -95,6 +100,13 @@
       <version>${truth.version}</version>
       <classifier>gwt</classifier>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <!-- use the guava we're building. -->
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.truth.extensions</groupId>
@@ -102,19 +114,24 @@
       <version>${truth.version}</version>
       <classifier>gwt</classifier>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.checkerframework</groupId>
-      <artifactId>checker-qual</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.checkerframework</groupId>
-      <artifactId>checker-qual</artifactId>
-      <classifier>sources</classifier>
+      <exclusions>
+        <exclusion>
+          <!-- use the guava we're building. -->
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.mvnsearch</groupId>
+        <artifactId>toolchains-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-toolchains-plugin</artifactId>
+      </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
@@ -134,8 +151,6 @@
             <!-- 2. Don't include the source in the jar (since that would let users depend on it from GWT client code, which is compiled from source). -->
             <exclude>**/ForceGuavaCompilation*</exclude>
             <exclude>**/DummyJavadocClass*</exclude>
-            <!-- (unrelated interruption: Also don't include our fabricated CF GWT module descriptor. -->
-            <exclude>**/Qual.gwt.xml</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -146,8 +161,6 @@
             <!-- 3. Don't include it in the source jar (since it's really more of a "test" than it is production code). -->
             <exclude>**/ForceGuavaCompilation*</exclude>
             <exclude>**/DummyJavadocClass*</exclude>
-            <!-- (unrelated interruption: Also don't include our fabricated CF GWT module descriptor. I don't think anyone should be using our *sources* jar, anyway, at least not as an input to GWT compilation, but it seems safest to exclude here, just as we do for maven-jar-plugin, to be safe. -->
-            <exclude>**/Qual.gwt.xml</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -249,7 +262,7 @@
           <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>failureaccess</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
             <classifier>sources</classifier>
           </dependency>
           <dependency>
@@ -287,6 +300,9 @@
             <goals><goal>run</goal></goals>
             <configuration>
               <target name="copy-gwt-resources">
+                <delete dir="${project.build.directory}/guava-gwt-sources" quiet="true" />
+                <delete dir="${project.build.directory}/guava-test-gwt-sources" quiet="true" />
+
                 <copy toDir="${project.build.directory}/guava-gwt-sources">
                   <fileset dir="${project.build.directory}/guava-sources">
                     <contains text="@GwtCompatible"/>
@@ -308,12 +324,10 @@
                     <include name="**/InternalFutureFailureAccess.java" />
                   </fileset>
                 </copy>
-                <!-- We fabricate a GWT module to cover the CF annotations. Then we inherit it in ForceGuavaCompilation.gwt.xml. -->
-                <echo file="${project.build.directory}/guava-gwt-sources/org/checkerframework/checker/nullness/qual/Qual.gwt.xml">
-                  &lt;module&gt;&lt;source path="" /&gt;&lt;/module&gt;
-                </echo>
-                <!-- TODO(cpovirk): DO NOT RELEASE in this state: I suspect that downstream users of guava-gwt will see their compilation fail from the "missing" CF annotations (whether because those sources are missing entirely or because they're present but without a module descriptor). -->
-                <!-- In contrast to what we do with our *own* sources (i.e., those from guava, guava-testlib, and guava-tests), we *don't* copy the CF annotations to guava-gwt-sources (and so we don't need to unpack them ourselves at all). If we did, they would end up in our generated jar. And we don't need to, anyway: The GWT plugin picks them up automatically because of the <classifier>source</classifier> dependency above. -->
+                <!-- Any manually written supersource should take priority over the original guava source, so we set overwrite=true. -->
+                <copy toDir="${project.build.directory}/guava-gwt-sources" overwrite="true">
+                  <fileset dir="src-super" />
+                </copy>
                 <copy toDir="${project.build.directory}/guava-test-gwt-sources">
                   <fileset dir="${project.build.directory}/guava-test-sources">
                     <contains text="@GwtCompatible"/>
@@ -324,6 +338,7 @@
           </execution>
         </executions>
       </plugin>
+      <!-- TODO(cpovirk): We really should try tbroyer's plugin instead of this legacy one. -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>gwt-maven-plugin</artifactId>
@@ -338,6 +353,7 @@
               <module>com.google.common.ForceGuavaCompilation</module>
               <failOnError>true</failOnError>
               <logLevel>${gwt.logLevel}</logLevel>
+              <generateJsInteropExports>true</generateJsInteropExports>
               <validateOnly>true</validateOnly>
               <sourceLevel>1.8</sourceLevel>
               <!--
@@ -410,9 +426,8 @@
       <resource>
         <directory>src</directory>
       </resource>
-      <resource>
-        <directory>src-super</directory>
-      </resource>
+      <!-- src-super is copied to guava-gwt-sources (so that we can strip its @Nullable annotations), so we don't need to list it here. We may want to arrange something similar for test-super someday. -->
+      <!-- TODO(cpovirk): Why do we have separate src and src-super directories, anyway? -->
       <resource>
         <directory>${project.build.directory}/guava-gwt-sources</directory>
       </resource>

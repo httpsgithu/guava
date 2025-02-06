@@ -18,8 +18,10 @@ package com.google.common.util.concurrent;
 
 import static com.google.common.util.concurrent.InterruptionUtil.repeatedlyInterruptTestThread;
 import static com.google.common.util.concurrent.Uninterruptibles.getUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.TearDown;
 import com.google.common.testing.TearDownStack;
@@ -29,9 +31,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 // TODO(cpovirk): Should this be merged into UninterruptiblesTest?
 /**
@@ -40,6 +42,7 @@ import junit.framework.TestCase;
  * @author Kevin Bourrillion
  * @author Chris Povirk
  */
+@NullUnmarked
 public class UninterruptibleFutureTest extends TestCase {
   private SleepingRunnable sleeper;
   private Future<Boolean> delayedFuture;
@@ -77,7 +80,6 @@ public class UninterruptibleFutureTest extends TestCase {
    * This first test doesn't test anything in Uninterruptibles, just demonstrates some normal
    * behavior of futures so that you can contrast the next test with it.
    */
-
   public void testRegularFutureInterrupted() throws ExecutionException {
 
     /*
@@ -93,11 +95,11 @@ public class UninterruptibleFutureTest extends TestCase {
      * 7. We expect get() to return this result.
      * 8. We expect the test thread's interrupt state to be false.
      */
-    InterruptionUtil.requestInterruptIn(200, TimeUnit.MILLISECONDS);
+    InterruptionUtil.requestInterruptIn(200, MILLISECONDS);
 
     assertFalse(Thread.interrupted());
     try {
-      delayedFuture.get(20000, TimeUnit.MILLISECONDS);
+      delayedFuture.get(20000, MILLISECONDS);
       fail("expected to be interrupted");
     } catch (InterruptedException expected) {
     } catch (TimeoutException e) {
@@ -116,17 +118,13 @@ public class UninterruptibleFutureTest extends TestCase {
     assertTrue(sleeper.completed);
   }
 
-
   public void testMakeUninterruptible_timeoutPreservedThroughInterruption()
       throws ExecutionException {
 
     repeatedlyInterruptTestThread(100, tearDownStack);
 
-    try {
-      getUninterruptibly(delayedFuture, 500, TimeUnit.MILLISECONDS);
-      fail("expected to time out");
-    } catch (TimeoutException expected) {
-    }
+    assertThrows(
+        TimeoutException.class, () -> getUninterruptibly(delayedFuture, 500, MILLISECONDS));
     assertTrue(Thread.interrupted()); // clears the interrupt state, too
 
     assertFalse(sleeper.completed);
@@ -155,31 +153,25 @@ public class UninterruptibleFutureTest extends TestCase {
     }
   }
 
-
   public void testMakeUninterruptible_untimed_uninterrupted() throws Exception {
     runUntimedInterruptsTest(0);
   }
-
 
   public void testMakeUninterruptible_untimed_interrupted() throws Exception {
     runUntimedInterruptsTest(1);
   }
 
-
   public void testMakeUninterruptible_untimed_multiplyInterrupted() throws Exception {
     runUntimedInterruptsTest(38);
   }
-
 
   public void testMakeUninterruptible_timed_uninterrupted() throws Exception {
     runTimedInterruptsTest(0);
   }
 
-
   public void testMakeUninterruptible_timed_interrupted() throws Exception {
     runTimedInterruptsTest(1);
   }
-
 
   public void testMakeUninterruptible_timed_multiplyInterrupted() throws Exception {
     runTimedInterruptsTest(38);
@@ -218,7 +210,6 @@ public class UninterruptibleFutureTest extends TestCase {
   /**
    * Confirms that the test code triggers {@link InterruptedException} in a standard {@link Future}.
    */
-
   public void testMakeUninterruptible_plainFutureSanityCheck() throws Exception {
     SettableFuture<String> future = SettableFuture.create();
     FutureTask<Boolean> wasInterrupted = untimedInterruptReporter(future, true);
@@ -226,15 +217,10 @@ public class UninterruptibleFutureTest extends TestCase {
     Thread waitingThread = new Thread(wasInterrupted);
     waitingThread.start();
     waitingThread.interrupt();
-    try {
-      wasInterrupted.get();
-      fail();
-    } catch (ExecutionException expected) {
-      assertTrue(
-          expected.getCause().toString(), expected.getCause() instanceof InterruptedException);
-    }
+    ExecutionException expected =
+        assertThrows(ExecutionException.class, () -> wasInterrupted.get());
+    assertTrue(expected.getCause().toString(), expected.getCause() instanceof InterruptedException);
   }
-
 
   public void testMakeUninterruptible_timedGetZeroTimeoutAttempted()
       throws TimeoutException, ExecutionException {
@@ -247,7 +233,6 @@ public class UninterruptibleFutureTest extends TestCase {
      */
     assertEquals(RESULT, getUninterruptibly(future, 0, SECONDS));
   }
-
 
   public void testMakeUninterruptible_timedGetNegativeTimeoutAttempted()
       throws TimeoutException, ExecutionException {

@@ -16,10 +16,13 @@
 
 package com.google.common.collect;
 
+import static java.util.Collections.singletonMap;
+
 import com.google.common.annotations.GwtCompatible;
-import java.util.Collections;
 import java.util.Map.Entry;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tests for {@code AbstractMapEntry}.
@@ -27,11 +30,13 @@ import junit.framework.TestCase;
  * @author Mike Bostock
  */
 @GwtCompatible
+@NullMarked
 public class AbstractMapEntryTest extends TestCase {
-  private static final String NK = null;
-  private static final Integer NV = null;
+  private static final @Nullable String NK = null;
+  private static final @Nullable Integer NV = null;
 
-  private static <K, V> Entry<K, V> entry(final K key, final V value) {
+  private static <K extends @Nullable Object, V extends @Nullable Object> Entry<K, V> entry(
+      final K key, final V value) {
     return new AbstractMapEntry<K, V>() {
       @Override
       public K getKey() {
@@ -45,8 +50,9 @@ public class AbstractMapEntryTest extends TestCase {
     };
   }
 
-  private static <K, V> Entry<K, V> control(K key, V value) {
-    return Collections.singletonMap(key, value).entrySet().iterator().next();
+  private static <K extends @Nullable Object, V extends @Nullable Object> Entry<K, V> control(
+      K key, V value) {
+    return singletonMap(key, value).entrySet().iterator().next();
   }
 
   public void testToString() {
@@ -61,7 +67,8 @@ public class AbstractMapEntryTest extends TestCase {
 
   public void testEquals() {
     Entry<String, Integer> foo1 = entry("foo", 1);
-    assertEquals(foo1, foo1);
+    // Explicitly call `equals`; `assertEquals` might return fast
+    assertTrue(foo1.equals(foo1));
     assertEquals(control("foo", 1), foo1);
     assertEquals(control("bar", 2), entry("bar", 2));
     assertFalse(control("foo", 1).equals(entry("foo", 2)));

@@ -24,8 +24,10 @@ import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import java.util.Random;
+import org.jspecify.annotations.NullUnmarked;
 
 /** Benchmarks some algorithms providing the same functionality as {@link Quantiles}. */
+@NullUnmarked
 public class QuantilesBenchmark {
 
   private static final ContiguousSet<Integer> ALL_DECILE_INDEXES =
@@ -50,7 +52,7 @@ public class QuantilesBenchmark {
   }
 
   private double[] dataset(int i) {
-    // We must test on a fresh clone of the dataset each time. Doing sorts and quickselects on an
+    // We must test on a fresh clone of the dataset each time. Doing sorts and quickselects on a
     // dataset which is already sorted or partially sorted is cheating.
     return datasets[i & 0xFF].clone();
   }

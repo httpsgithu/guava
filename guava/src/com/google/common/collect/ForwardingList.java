@@ -16,14 +16,13 @@
 
 package com.google.common.collect;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A list which forwards all its method calls to another list. Subclasses should override one or
@@ -51,7 +50,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @since 2.0
  */
 @GwtCompatible
-public abstract class ForwardingList<E> extends ForwardingCollection<E> implements List<E> {
+public abstract class ForwardingList<E extends @Nullable Object> extends ForwardingCollection<E>
+    implements List<E> {
   // TODO(lowasser): identify places where thread safety is actually lost
 
   /** Constructor for use by subclasses. */
@@ -61,7 +61,7 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
   protected abstract List<E> delegate();
 
   @Override
-  public void add(int index, E element) {
+  public void add(int index, @ParametricNullness E element) {
     delegate().add(index, element);
   }
 
@@ -72,17 +72,18 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
   }
 
   @Override
+  @ParametricNullness
   public E get(int index) {
     return delegate().get(index);
   }
 
   @Override
-  public int indexOf(Object element) {
+  public int indexOf(@Nullable Object element) {
     return delegate().indexOf(element);
   }
 
   @Override
-  public int lastIndexOf(Object element) {
+  public int lastIndexOf(@Nullable Object element) {
     return delegate().lastIndexOf(element);
   }
 
@@ -98,13 +99,15 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
 
   @CanIgnoreReturnValue
   @Override
+  @ParametricNullness
   public E remove(int index) {
     return delegate().remove(index);
   }
 
   @CanIgnoreReturnValue
   @Override
-  public E set(int index, E element) {
+  @ParametricNullness
+  public E set(int index, @ParametricNullness E element) {
     return delegate().set(index, element);
   }
 
@@ -130,7 +133,7 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
    *
    * @since 7.0
    */
-  protected boolean standardAdd(E element) {
+  protected boolean standardAdd(@ParametricNullness E element) {
     add(size(), element);
     return true;
   }
@@ -198,7 +201,6 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
    *
    * @since 7.0
    */
-  @Beta
   protected ListIterator<E> standardListIterator(int start) {
     return Lists.listIteratorImpl(this, start);
   }
@@ -209,7 +211,6 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
    *
    * @since 7.0
    */
-  @Beta
   protected List<E> standardSubList(int fromIndex, int toIndex) {
     return Lists.subListImpl(this, fromIndex, toIndex);
   }
@@ -221,7 +222,6 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
    *
    * @since 7.0
    */
-  @Beta
   protected boolean standardEquals(@Nullable Object object) {
     return Lists.equalsImpl(this, object);
   }
@@ -233,7 +233,6 @@ public abstract class ForwardingList<E> extends ForwardingCollection<E> implemen
    *
    * @since 7.0
    */
-  @Beta
   protected int standardHashCode() {
     return Lists.hashCodeImpl(this);
   }

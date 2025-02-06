@@ -26,7 +26,7 @@ import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * This class provides a skeletal implementation of the {@link Multiset} interface. A new multiset
@@ -42,7 +42,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @author Louis Wasserman
  */
 @GwtCompatible
-abstract class AbstractMultiset<E> extends AbstractCollection<E> implements Multiset<E> {
+abstract class AbstractMultiset<E extends @Nullable Object> extends AbstractCollection<E>
+    implements Multiset<E> {
   // Query Operations
 
   @Override
@@ -58,14 +59,14 @@ abstract class AbstractMultiset<E> extends AbstractCollection<E> implements Mult
   // Modification Operations
   @CanIgnoreReturnValue
   @Override
-  public final boolean add(@Nullable E element) {
+  public final boolean add(@ParametricNullness E element) {
     add(element, 1);
     return true;
   }
 
   @CanIgnoreReturnValue
   @Override
-  public int add(@Nullable E element, int occurrences) {
+  public int add(@ParametricNullness E element, int occurrences) {
     throw new UnsupportedOperationException();
   }
 
@@ -83,13 +84,13 @@ abstract class AbstractMultiset<E> extends AbstractCollection<E> implements Mult
 
   @CanIgnoreReturnValue
   @Override
-  public int setCount(@Nullable E element, int count) {
+  public int setCount(@ParametricNullness E element, int count) {
     return setCountImpl(this, element, count);
   }
 
   @CanIgnoreReturnValue
   @Override
-  public boolean setCount(@Nullable E element, int oldCount, int newCount) {
+  public boolean setCount(@ParametricNullness E element, int oldCount, int newCount) {
     return setCountImpl(this, element, oldCount, newCount);
   }
 

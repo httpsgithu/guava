@@ -16,11 +16,17 @@
 
 package com.google.common.collect;
 
+import static com.google.common.collect.Iterables.getOnlyElement;
+
 import com.google.common.annotations.GwtCompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.EnumSet;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Implementation of {@link ImmutableSet} backed by a non-empty {@link java.util.EnumSet}.
@@ -30,15 +36,14 @@ import java.util.EnumSet;
 @GwtCompatible(serializable = true, emulated = true)
 @SuppressWarnings("serial") // we're overriding default serialization
 final class ImmutableEnumSet<E extends Enum<E>> extends ImmutableSet<E> {
-  @SuppressWarnings("rawtypes") // necessary to compile against Java 8
-  static ImmutableSet asImmutable(EnumSet set) {
+  static <E extends Enum<E>> ImmutableSet<E> asImmutable(EnumSet<E> set) {
     switch (set.size()) {
       case 0:
         return ImmutableSet.of();
       case 1:
-        return ImmutableSet.of(Iterables.getOnlyElement(set));
+        return ImmutableSet.of(getOnlyElement(set));
       default:
-        return new ImmutableEnumSet(set);
+        return new ImmutableEnumSet<>(set);
     }
   }
 
@@ -72,7 +77,7 @@ final class ImmutableEnumSet<E extends Enum<E>> extends ImmutableSet<E> {
   }
 
   @Override
-  public boolean contains(Object object) {
+  public boolean contains(@Nullable Object object) {
     return delegate.contains(object);
   }
 
@@ -90,7 +95,7 @@ final class ImmutableEnumSet<E extends Enum<E>> extends ImmutableSet<E> {
   }
 
   @Override
-  public boolean equals(Object object) {
+  public boolean equals(@Nullable Object object) {
     if (object == this) {
       return true;
     }
@@ -120,13 +125,20 @@ final class ImmutableEnumSet<E extends Enum<E>> extends ImmutableSet<E> {
 
   // All callers of the constructor are restricted to <E extends Enum<E>>.
   @Override
+  @J2ktIncompatible // serialization
   Object writeReplace() {
     return new EnumSerializedForm<E>(delegate);
+  }
+
+  @J2ktIncompatible // serialization
+  private void readObject(ObjectInputStream stream) throws InvalidObjectException {
+    throw new InvalidObjectException("Use SerializedForm");
   }
 
   /*
    * This class is used to serialize ImmutableEnumSet instances.
    */
+  @J2ktIncompatible // serialization
   private static class EnumSerializedForm<E extends Enum<E>> implements Serializable {
     final EnumSet<E> delegate;
 

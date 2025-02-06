@@ -16,7 +16,6 @@
 
 package com.google.common.collect;
 
-import com.google.common.annotations.Beta;
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.base.Objects;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -24,7 +23,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A map which forwards all its method calls to another map. Subclasses should override one or more
@@ -55,7 +54,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @since 2.0
  */
 @GwtCompatible
-public abstract class ForwardingMap<K, V> extends ForwardingObject implements Map<K, V> {
+public abstract class ForwardingMap<K extends @Nullable Object, V extends @Nullable Object>
+    extends ForwardingObject implements Map<K, V> {
   // TODO(lowasser): identify places where thread safety is actually lost
 
   /** Constructor for use by subclasses. */
@@ -76,7 +76,7 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
 
   @CanIgnoreReturnValue
   @Override
-  public V remove(Object key) {
+  public @Nullable V remove(@Nullable Object key) {
     return delegate().remove(key);
   }
 
@@ -96,13 +96,13 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
   }
 
   @Override
-  public V get(@Nullable Object key) {
+  public @Nullable V get(@Nullable Object key) {
     return delegate().get(key);
   }
 
   @CanIgnoreReturnValue
   @Override
-  public V put(K key, V value) {
+  public @Nullable V put(@ParametricNullness K key, @ParametricNullness V value) {
     return delegate().put(key, value);
   }
 
@@ -157,8 +157,7 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
    *
    * @since 7.0
    */
-  @Beta
-  protected V standardRemove(@Nullable Object key) {
+  protected @Nullable V standardRemove(@Nullable Object key) {
     Iterator<Entry<K, V>> entryIterator = entrySet().iterator();
     while (entryIterator.hasNext()) {
       Entry<K, V> entry = entryIterator.next();
@@ -191,7 +190,6 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
    *
    * @since 10.0
    */
-  @Beta
   protected class StandardKeySet extends Maps.KeySet<K, V> {
     /** Constructor for use by subclasses. */
     public StandardKeySet() {
@@ -206,7 +204,6 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
    *
    * @since 7.0
    */
-  @Beta
   protected boolean standardContainsKey(@Nullable Object key) {
     return Maps.containsKeyImpl(this, key);
   }
@@ -220,7 +217,6 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
    *
    * @since 10.0
    */
-  @Beta
   protected class StandardValues extends Maps.Values<K, V> {
     /** Constructor for use by subclasses. */
     public StandardValues() {
@@ -248,10 +244,9 @@ public abstract class ForwardingMap<K, V> extends ForwardingObject implements Ma
    *
    * @since 10.0
    */
-  @Beta
   protected abstract class StandardEntrySet extends Maps.EntrySet<K, V> {
     /** Constructor for use by subclasses. */
-    public StandardEntrySet() {}
+    protected StandardEntrySet() {}
 
     @Override
     Map<K, V> map() {

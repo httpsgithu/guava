@@ -24,7 +24,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An immutable pair representing the two endpoints of an edge in a graph. The {@link EndpointPair}
@@ -50,13 +50,13 @@ public abstract class EndpointPair<N> implements Iterable<N> {
 
   /** Returns an {@link EndpointPair} representing the endpoints of a directed edge. */
   public static <N> EndpointPair<N> ordered(N source, N target) {
-    return new Ordered<N>(source, target);
+    return new Ordered<>(source, target);
   }
 
   /** Returns an {@link EndpointPair} representing the endpoints of an undirected edge. */
   public static <N> EndpointPair<N> unordered(N nodeU, N nodeV) {
     // Swap nodes on purpose to prevent callers from relying on the "ordering" of an unordered pair.
-    return new Unordered<N>(nodeV, nodeU);
+    return new Unordered<>(nodeV, nodeU);
   }
 
   /** Returns an {@link EndpointPair} representing the endpoints of an edge in {@code graph}. */
@@ -103,8 +103,9 @@ public abstract class EndpointPair<N> implements Iterable<N> {
    * Returns the node that is adjacent to {@code node} along the origin edge.
    *
    * @throws IllegalArgumentException if this {@link EndpointPair} does not contain {@code node}
+   * @since 20.0 (but the argument type was changed from {@code Object} to {@code N} in 31.0)
    */
-  public final N adjacentNode(Object node) {
+  public final N adjacentNode(N node) {
     if (node.equals(nodeU)) {
       return nodeV;
     } else if (node.equals(nodeV)) {

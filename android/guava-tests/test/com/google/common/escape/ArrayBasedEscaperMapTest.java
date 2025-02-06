@@ -16,21 +16,22 @@
 
 package com.google.common.escape;
 
+import static com.google.common.escape.ReflectionFreeAssertThrows.assertThrows;
+
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
-/** @author David Beaumont */
+/**
+ * @author David Beaumont
+ */
 @GwtCompatible
+@NullUnmarked
 public class ArrayBasedEscaperMapTest extends TestCase {
   public void testNullMap() {
-    try {
-      ArrayBasedEscaperMap.create(null);
-      fail("expected exception did not occur");
-    } catch (NullPointerException e) {
-      // pass
-    }
+    assertThrows(NullPointerException.class, () -> ArrayBasedEscaperMap.create(null));
   }
 
   public void testEmptyMap() {
@@ -62,7 +63,7 @@ public class ArrayBasedEscaperMapTest extends TestCase {
     char[][] replacementArray = fem.getReplacementArray();
     // Array length is highest character value + 1
     assertEquals(65536, replacementArray.length);
-    // The final element should always be non null.
+    // The final element should always be non-null.
     assertNotNull(replacementArray[replacementArray.length - 1]);
     // Exhaustively check all mappings (an int index avoids wrapping).
     for (int n = 0; n < replacementArray.length; ++n) {

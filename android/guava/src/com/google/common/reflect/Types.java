@@ -20,7 +20,6 @@ import static com.google.common.collect.Iterables.transform;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
@@ -45,26 +44,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.CheckForNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Utilities for working with {@link Type}.
  *
  * @author Ben Yu
  */
-@ElementTypesAreNonnullByDefault
 final class Types {
 
   /** Class#toString without the "class " and "interface " prefixes */
-  private static final Function<Type, String> TYPE_NAME =
-      new Function<Type, String>() {
-        @Override
-        public String apply(Type from) {
-          return JavaVersion.CURRENT.typeName(from);
-        }
-      };
-
   private static final Joiner COMMA_JOINER = Joiner.on(", ").useForNull("null");
 
   /** Returns the array type of {@code componentType}. */
@@ -89,7 +78,7 @@ final class Types {
    * {@code ownerType}.
    */
   static ParameterizedType newParameterizedTypeWithOwner(
-      @CheckForNull Type ownerType, Class<?> rawType, Type... arguments) {
+      @Nullable Type ownerType, Class<?> rawType, Type... arguments) {
     if (ownerType == null) {
       return newParameterizedType(rawType, arguments);
     }
@@ -109,15 +98,13 @@ final class Types {
   private enum ClassOwnership {
     OWNED_BY_ENCLOSING_CLASS {
       @Override
-      @CheckForNull
-      Class<?> getOwnerType(Class<?> rawType) {
+      @Nullable Class<?> getOwnerType(Class<?> rawType) {
         return rawType.getEnclosingClass();
       }
     },
     LOCAL_CLASS_HAS_NO_OWNER {
       @Override
-      @CheckForNull
-      Class<?> getOwnerType(Class<?> rawType) {
+      @Nullable Class<?> getOwnerType(Class<?> rawType) {
         if (rawType.isLocalClass()) {
           return null;
         } else {
@@ -126,8 +113,7 @@ final class Types {
       }
     };
 
-    @CheckForNull
-    abstract Class<?> getOwnerType(Class<?> rawType);
+    abstract @Nullable Class<?> getOwnerType(Class<?> rawType);
 
     static final ClassOwnership JVM_BEHAVIOR = detectJvmBehavior();
 
@@ -169,7 +155,7 @@ final class Types {
   }
 
   /**
-   * Returns human readable string representation of {@code type}.
+   * Returns a human-readable string representation of {@code type}.
    *
    * <p>The format is subject to change.
    */
@@ -177,10 +163,9 @@ final class Types {
     return (type instanceof Class) ? ((Class<?>) type).getName() : type.toString();
   }
 
-  @CheckForNull
-  static Type getComponentType(Type type) {
+  static @Nullable Type getComponentType(Type type) {
     checkNotNull(type);
-    final AtomicReference<@Nullable Type> result = new AtomicReference<>();
+    AtomicReference<@Nullable Type> result = new AtomicReference<>();
     new TypeVisitor() {
       @Override
       void visitTypeVariable(TypeVariable<?> t) {
@@ -209,8 +194,7 @@ final class Types {
    * Returns {@code ? extends X} if any of {@code bounds} is a subtype of {@code X[]}; or null
    * otherwise.
    */
-  @CheckForNull
-  private static Type subtypeOfComponentType(Type[] bounds) {
+  private static @Nullable Type subtypeOfComponentType(Type[] bounds) {
     for (Type bound : bounds) {
       Type componentType = getComponentType(bound);
       if (componentType != null) {
@@ -252,7 +236,7 @@ final class Types {
     }
 
     @Override
-    public boolean equals(@CheckForNull Object obj) {
+    public boolean equals(@Nullable Object obj) {
       if (obj instanceof GenericArrayType) {
         GenericArrayType that = (GenericArrayType) obj;
         return Objects.equal(getGenericComponentType(), that.getGenericComponentType());
@@ -265,11 +249,11 @@ final class Types {
 
   private static final class ParameterizedTypeImpl implements ParameterizedType, Serializable {
 
-    @CheckForNull private final Type ownerType;
+    private final @Nullable Type ownerType;
     private final ImmutableList<Type> argumentsList;
     private final Class<?> rawType;
 
-    ParameterizedTypeImpl(@CheckForNull Type ownerType, Class<?> rawType, Type[] typeArguments) {
+    ParameterizedTypeImpl(@Nullable Type ownerType, Class<?> rawType, Type[] typeArguments) {
       checkNotNull(rawType);
       checkArgument(typeArguments.length == rawType.getTypeParameters().length);
       disallowPrimitiveType(typeArguments, "type parameter");
@@ -289,8 +273,7 @@ final class Types {
     }
 
     @Override
-    @CheckForNull
-    public Type getOwnerType() {
+    public @Nullable Type getOwnerType() {
       return ownerType;
     }
 
@@ -303,7 +286,7 @@ final class Types {
       return builder
           .append(rawType.getName())
           .append('<')
-          .append(COMMA_JOINER.join(transform(argumentsList, TYPE_NAME)))
+          .append(COMMA_JOINER.join(transform(argumentsList, JavaVersion.CURRENT::typeName)))
           .append('>')
           .toString();
     }
@@ -316,7 +299,7 @@ final class Types {
     }
 
     @Override
-    public boolean equals(@CheckForNull Object other) {
+    public boolean equals(@Nullable Object other) {
       if (!(other instanceof ParameterizedType)) {
         return false;
       }
@@ -331,8 +314,7 @@ final class Types {
 
   private static <D extends GenericDeclaration> TypeVariable<D> newTypeVariableImpl(
       D genericDeclaration, String name, Type[] bounds) {
-    TypeVariableImpl<D> typeVariableImpl =
-        new TypeVariableImpl<D>(genericDeclaration, name, bounds);
+    TypeVariableImpl<D> typeVariableImpl = new TypeVariableImpl<>(genericDeclaration, name, bounds);
     @SuppressWarnings("unchecked")
     TypeVariable<D> typeVariable =
         Reflection.newProxy(
@@ -366,6 +348,7 @@ final class Types {
    * <p>This workaround should be removed at a distant future time when we no longer support Java
    * versions earlier than 8.
    */
+  @SuppressWarnings("removal") // b/318391980
   private static final class TypeVariableInvocationHandler implements InvocationHandler {
     private static final ImmutableMap<String, Method> typeVariableMethods;
 
@@ -382,7 +365,7 @@ final class Types {
           builder.put(method.getName(), method);
         }
       }
-      typeVariableMethods = builder.build();
+      typeVariableMethods = builder.buildKeepingLast();
     }
 
     private final TypeVariableImpl<?> typeVariableImpl;
@@ -392,8 +375,7 @@ final class Types {
     }
 
     @Override
-    @CheckForNull
-    public Object invoke(Object proxy, Method method, @CheckForNull @Nullable Object[] args)
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object @Nullable [] args)
         throws Throwable {
       String methodName = method.getName();
       Method typeVariableMethod = typeVariableMethods.get(methodName);
@@ -449,7 +431,7 @@ final class Types {
     }
 
     @Override
-    public boolean equals(@CheckForNull Object obj) {
+    public boolean equals(@Nullable Object obj) {
       if (NativeTypeVariableEquals.NATIVE_TYPE_VARIABLE_ONLY) {
         // equal only to our TypeVariable implementation with identical bounds
         if (obj != null
@@ -498,7 +480,7 @@ final class Types {
     }
 
     @Override
-    public boolean equals(@CheckForNull Object obj) {
+    public boolean equals(@Nullable Object obj) {
       if (obj instanceof WildcardType) {
         WildcardType that = (WildcardType) obj;
         return lowerBounds.equals(Arrays.asList(that.getLowerBounds()))
@@ -605,14 +587,7 @@ final class Types {
           return (String) getTypeName.invoke(type);
         } catch (NoSuchMethodException e) {
           throw new AssertionError("Type.getTypeName should be available in Java 8");
-          /*
-           * Do not merge the 2 catch blocks below. javac would infer a type of
-           * ReflectiveOperationException, which Animal Sniffer would reject. (Old versions of
-           * Android don't *seem* to mind, but there might be edge cases of which we're unaware.)
-           */
-        } catch (InvocationTargetException e) {
-          throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+        } catch (InvocationTargetException | IllegalAccessException e) {
           throw new RuntimeException(e);
         }
       }
@@ -679,14 +654,13 @@ final class Types {
   }
 
   /**
-   * Per <a href="https://code.google.com/p/guava-libraries/issues/detail?id=1635">issue 1635</a>,
-   * In JDK 1.7.0_51-b13, {@link TypeVariableImpl#equals(Object)} is changed to no longer be equal
-   * to custom TypeVariable implementations. As a result, we need to make sure our TypeVariable
-   * implementation respects symmetry. Moreover, we don't want to reconstruct a native type variable
-   * {@code <A>} using our implementation unless some of its bounds have changed in resolution. This
-   * avoids creating unequal TypeVariable implementation unnecessarily. When the bounds do change,
-   * however, it's fine for the synthetic TypeVariable to be unequal to any native TypeVariable
-   * anyway.
+   * Per <a href="https://github.com/google/guava/issues/1635">issue 1635</a>, In JDK 1.7.0_51-b13,
+   * {@link TypeVariableImpl#equals(Object)} is changed to no longer be equal to custom TypeVariable
+   * implementations. As a result, we need to make sure our TypeVariable implementation respects
+   * symmetry. Moreover, we don't want to reconstruct a native type variable {@code <A>} using our
+   * implementation unless some of its bounds have changed in resolution. This avoids creating
+   * unequal TypeVariable implementation unnecessarily. When the bounds do change, however, it's
+   * fine for the synthetic TypeVariable to be unequal to any native TypeVariable anyway.
    */
   static final class NativeTypeVariableEquals<X> {
     static final boolean NATIVE_TYPE_VARIABLE_ONLY =

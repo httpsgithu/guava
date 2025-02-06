@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Unit tests for {@link JdkFutureAdapters}.
@@ -40,6 +41,7 @@ import junit.framework.TestCase;
  * @author Sven Mawson
  * @author Kurt Alfred Kluever
  */
+@NullUnmarked
 public class JdkFutureAdaptersTest extends TestCase {
   private static final String DATA1 = "data";
 
@@ -100,7 +102,6 @@ public class JdkFutureAdaptersTest extends TestCase {
     assertTrue(listenableFuture.isDone());
   }
 
-
   public void testListenInPoolThreadUsesGivenExecutor() throws Exception {
     ExecutorService executorService =
         newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true).build());
@@ -125,7 +126,6 @@ public class JdkFutureAdaptersTest extends TestCase {
     assertTrue(listenableFuture.isDone());
   }
 
-
   public void testListenInPoolThreadCustomExecutorInterrupted() throws Exception {
     final CountDownLatch submitSuccessful = new CountDownLatch(1);
     ExecutorService executorService =
@@ -133,7 +133,7 @@ public class JdkFutureAdaptersTest extends TestCase {
             0,
             Integer.MAX_VALUE,
             60L,
-            TimeUnit.SECONDS,
+            SECONDS,
             new SynchronousQueue<Runnable>(),
             new ThreadFactoryBuilder().setDaemon(true).build()) {
           @Override
@@ -234,7 +234,6 @@ public class JdkFutureAdaptersTest extends TestCase {
       wasRun.countDown();
     }
   }
-
 
   @SuppressWarnings("IsInstanceIncompatibleType") // intentional.
   public void testListenInPoolThreadRunsListenerAfterRuntimeException() throws Exception {

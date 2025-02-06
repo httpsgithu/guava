@@ -18,9 +18,11 @@ import static java.lang.Math.min;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.common.math.LongMath;
 import java.util.concurrent.TimeUnit;
 
+@J2ktIncompatible
 @GwtIncompatible
 abstract class SmoothRateLimiter extends RateLimiter {
   /*
@@ -203,6 +205,7 @@ abstract class SmoothRateLimiter extends RateLimiter {
    */
   static final class SmoothWarmingUp extends SmoothRateLimiter {
     private final long warmupPeriodMicros;
+
     /**
      * The slope of the line from the stable interval (when permits == 0), to the cold interval
      * (when permits == maxPermits)

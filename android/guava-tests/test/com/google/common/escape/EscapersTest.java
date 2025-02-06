@@ -16,14 +16,19 @@
 
 package com.google.common.escape;
 
+
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.escape.testing.EscaperAsserts;
 import java.io.IOException;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
-/** @author David Beaumont */
+/**
+ * @author David Beaumont
+ */
 @GwtCompatible
+@NullUnmarked
 public class EscapersTest extends TestCase {
   public void testNullEscaper() throws IOException {
     Escaper escaper = Escapers.nullEscaper();
@@ -60,7 +65,7 @@ public class EscapersTest extends TestCase {
   }
 
   public void testBuilderCreatesIndependentEscapers() {
-    // Setup a simple builder and create the first escaper.
+    // Set up a simple builder and create the first escaper.
     Escapers.Builder builder = Escapers.builder();
     builder.setSafeRange('a', 'z');
     builder.setUnsafeReplacement("X");
@@ -78,37 +83,7 @@ public class EscapersTest extends TestCase {
     assertEquals("Xhe-Xuick-Xrown-Xox$", second.escape("The Quick Brown Fox!"));
   }
 
-  public void testAsUnicodeEscaper() throws IOException {
-    CharEscaper charEscaper =
-        createSimpleCharEscaper(
-            ImmutableMap.<Character, char[]>builder()
-                .put('x', "<hello>".toCharArray())
-                .put('\uD800', "<hi>".toCharArray())
-                .put('\uDC00', "<lo>".toCharArray())
-                .build());
-    UnicodeEscaper unicodeEscaper = Escapers.asUnicodeEscaper(charEscaper);
-    EscaperAsserts.assertBasic(unicodeEscaper);
-    assertEquals("<hello><hi><lo>", charEscaper.escape("x\uD800\uDC00"));
-    assertEquals("<hello><hi><lo>", unicodeEscaper.escape("x\uD800\uDC00"));
-
-    // Test that wrapped escapers acquire good Unicode semantics.
-    assertEquals("<hi><hello><lo>", charEscaper.escape("\uD800x\uDC00"));
-    try {
-      unicodeEscaper.escape("\uD800x\uDC00");
-      fail("should have failed for bad Unicode input");
-    } catch (IllegalArgumentException e) {
-      // pass
-    }
-    assertEquals("<lo><hi>", charEscaper.escape("\uDC00\uD800"));
-    try {
-      unicodeEscaper.escape("\uDC00\uD800");
-      fail("should have failed for bad Unicode input");
-    } catch (IllegalArgumentException e) {
-      // pass
-    }
-  }
-
-  // A trival non-optimized escaper for testing.
+  // A trivial non-optimized escaper for testing.
   static CharEscaper createSimpleCharEscaper(final ImmutableMap<Character, char[]> replacementMap) {
     return new CharEscaper() {
       @Override
@@ -118,7 +93,7 @@ public class EscapersTest extends TestCase {
     };
   }
 
-  // A trival non-optimized escaper for testing.
+  // A trivial non-optimized escaper for testing.
   static UnicodeEscaper createSimpleUnicodeEscaper(
       final ImmutableMap<Integer, char[]> replacementMap) {
     return new UnicodeEscaper() {

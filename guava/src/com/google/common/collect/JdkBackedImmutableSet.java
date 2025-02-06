@@ -15,8 +15,10 @@
 package com.google.common.collect;
 
 import com.google.common.annotations.GwtCompatible;
+import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * ImmutableSet implementation backed by a JDK HashSet, used to defend against apparent hash
@@ -53,5 +55,14 @@ final class JdkBackedImmutableSet<E> extends IndexedImmutableSet<E> {
   @Override
   public int size() {
     return delegateList.size();
+  }
+
+  // redeclare to help optimizers with b/310253115
+  @SuppressWarnings("RedundantOverride")
+  @Override
+  @J2ktIncompatible // serialization
+  @GwtIncompatible // serialization
+  Object writeReplace() {
+    return super.writeReplace();
   }
 }

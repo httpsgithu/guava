@@ -25,12 +25,14 @@ import com.google.common.collect.Lists;
 import java.lang.reflect.Field;
 import java.util.List;
 import junit.framework.TestCase;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Tests for the HttpHeaders class.
  *
  * @author Kurt Alfred Kluever
  */
+@NullUnmarked
 public class HttpHeadersTest extends TestCase {
 
   public void testConstantNameMatchesString() throws Exception {
@@ -40,6 +42,7 @@ public class HttpHeadersTest extends TestCase {
             .put("CDN_LOOP", "CDN-Loop")
             .put("ETAG", "ETag")
             .put("SOURCE_MAP", "SourceMap")
+            .put("SEC_CH_UA_WOW64", "Sec-CH-UA-WoW64")
             .put("SEC_WEBSOCKET_ACCEPT", "Sec-WebSocket-Accept")
             .put("SEC_WEBSOCKET_EXTENSIONS", "Sec-WebSocket-Extensions")
             .put("SEC_WEBSOCKET_KEY", "Sec-WebSocket-Key")
@@ -47,11 +50,11 @@ public class HttpHeadersTest extends TestCase {
             .put("SEC_WEBSOCKET_VERSION", "Sec-WebSocket-Version")
             .put("X_WEBKIT_CSP", "X-WebKit-CSP")
             .put("X_WEBKIT_CSP_REPORT_ONLY", "X-WebKit-CSP-Report-Only")
-            .build();
+            .buildOrThrow();
     ImmutableSet<String> uppercaseAcronyms =
         ImmutableSet.of(
-            "CH", "ID", "DNT", "DNS", "HTTP2", "IP", "MD5", "P3P", "TE", "UA", "UID", "URL", "WWW",
-            "XSS");
+            "CH", "ID", "DNT", "DNS", "DPR", "ECT", "GPC", "HTTP2", "IP", "MD5", "P3P", "RTT", "TE",
+            "UA", "UID", "URL", "WWW", "XSS");
     assertConstantNameMatchesString(HttpHeaders.class, specialCases, uppercaseAcronyms);
   }
 

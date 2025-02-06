@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.GwtIncompatible;
+import com.google.common.annotations.J2ktIncompatible;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.testing.ListTestSuiteBuilder;
 import com.google.common.collect.testing.SampleElements;
@@ -31,6 +32,7 @@ import java.util.List;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.jspecify.annotations.NullUnmarked;
 
 /**
  * Test suite covering {@link Doubles#asList(double[])}.
@@ -38,6 +40,8 @@ import junit.framework.TestSuite;
  * @author Kevin Bourrillion
  */
 @GwtCompatible(emulated = true)
+@NullUnmarked
+@AndroidIncompatible // test-suite builders
 public class DoubleArrayAsListTest extends TestCase {
 
   private static List<Double> asList(Double[] values) {
@@ -48,12 +52,13 @@ public class DoubleArrayAsListTest extends TestCase {
     return Doubles.asList(temp);
   }
 
+  @J2ktIncompatible
   @GwtIncompatible // suite
   public static Test suite() {
     List<ListTestSuiteBuilder<Double>> builders =
         ImmutableList.of(
             ListTestSuiteBuilder.using(new DoublesAsListGenerator()).named("Doubles.asList"),
-            ListTestSuiteBuilder.using(new DoublsAsListHeadSubListGenerator())
+            ListTestSuiteBuilder.using(new DoublesAsListHeadSubListGenerator())
                 .named("Doubles.asList, head subList"),
             ListTestSuiteBuilder.using(new DoublesAsListTailSubListGenerator())
                 .named("Doubles.asList, tail subList"),
@@ -84,7 +89,7 @@ public class DoubleArrayAsListTest extends TestCase {
     }
   }
 
-  public static final class DoublsAsListHeadSubListGenerator extends TestDoubleListGenerator {
+  public static final class DoublesAsListHeadSubListGenerator extends TestDoubleListGenerator {
     @Override
     protected List<Double> create(Double[] elements) {
       Double[] suffix = {Double.MIN_VALUE, Double.MAX_VALUE};

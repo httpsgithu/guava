@@ -61,6 +61,6 @@ final class DirectedNetworkConnections<N, E> extends AbstractDirectedNetworkConn
 
   @Override
   public Set<E> edgesConnecting(N node) {
-    return new EdgesConnecting<E>(((BiMap<E, N>) outEdgeMap).inverse(), node);
+    return new EdgesConnecting<>(((BiMap<E, N>) outEdgeMap).inverse(), node);
   }
 }
